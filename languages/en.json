@@ -1,0 +1,32 @@
+{
+  "WELCOME_MESSAGE": "Hi 👋, I'm Vocabulary Bot.",
+  "ECHO_MESSAGE": "Sorry, I don't know what to say \uD83D\uDE44",
+  "MAIN_MENU": {
+    "BUTTONS": [
+      "➕ Add word",
+      "➖ Delete word",
+      "✏ Edit word",
+      "📃 Dictionary",
+      "⚙ Settings",
+      "❓ Help"
+    ]
+  },
+  "LANG_SETTINGS": {
+    "TEXT": "Select interface language",
+    "SUCCESS": "Interface language successfully changed",
+    "BUTTONS": [
+      {
+        "TEXT": "English",
+        "CALLBACK_DATA": "lang_setting_en"
+      },
+      {
+        "TEXT": "Ukrainian",
+        "CALLBACK_DATA": "lang_setting_ua"
+      },
+      {
+        "TEXT": "Russian",
+        "CALLBACK_DATA": "lang_setting_ru"
+      }
+    ]
+  }
+}
