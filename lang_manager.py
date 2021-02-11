@@ -26,9 +26,9 @@ class LangManager:
         self.path_to_translations = path_to_translations
         self.db = db_manager
         self.localizations = {}
-        self.init_translations()
+        self.init_localizations()
 
-    def init_translations(self):
+    def init_localizations(self):
         """Initialize files with translation and provide list of available translations"""
         if os.path.isdir(self.path_to_translations):
             translations = os.listdir(self.path_to_translations)
@@ -38,8 +38,9 @@ class LangManager:
                     try:
                         self.localizations[os.path.splitext(translation)[0]] = json.loads(file.read())
                     except FileNotFoundError as error:
-                        logging.getLogger().error(error)
-            logging.getLogger("LangManager").info(f'Languages successfully initialized! [{len(self.localizations)}]')
+                        logging.getLogger(type(self).__name__).error(error)
+            logging.getLogger(type(self).__name__).info(
+                f'Localizations successfully initialized! [{len(self.localizations)}]')
 
     def get(self, key: str, lang_code: str) -> str:
         """Returns translation by [key] for given [localization]"""
@@ -59,7 +60,7 @@ class LangManager:
         else:
             return self.localizations[DEFAULT_LANG][key]['BUTTONS']
 
-    def get_lang_settings_text(self, key: str, value: str, lang_code: str) -> str:
+    def get_page_text(self, key: str, value: str, lang_code: str) -> str:
         """Returns lang settings text"""
         if lang_code in self.localizations and key in self.localizations[lang_code]:
             return self.localizations[lang_code][key][value]
@@ -72,3 +73,7 @@ class LangManager:
             return self.localizations[lang_code][key]['BUTTONS']
         else:
             return self.localizations[DEFAULT_LANG][key]['BUTTONS']
+
+    def get_user_dict(self, user_id: int) -> str:
+        """TODO: Implement user dict output"""
+        return ""

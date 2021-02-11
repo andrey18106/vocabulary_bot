@@ -59,6 +59,7 @@ class DbManager:
                                     metric INT NOT NULL REFERENCES metrics (metric_id), 
                                     count INT NOT NULL DEFAULT (1), user_id INT NOT NULL
                                 );'''
+
         try:
             self.conn.execute(users_table)
             self.conn.execute(words_table)
@@ -137,8 +138,8 @@ class DbManager:
             self.add_metric(handler_name)
         if self.analytics_log_exists(user_id, metric_id):
             query = 'UPDATE analytics_log SET count=? WHERE user_id=? AND metric=?'
-            count = self._execute_query('SELECT count FROM analytics_log WHERE user_id=? AND metric=?', user_id,
-                                        metric_id).fetchall()[0][0]
+            count = self._execute_query('SELECT count FROM analytics_log WHERE user_id=? AND metric=?',
+                                        user_id, metric_id).fetchall()[0][0]
             self._execute_query(query, count + 1, user_id, metric_id)
             self.conn.commit()
         else:
@@ -152,11 +153,21 @@ class DbManager:
             self.add_metric(callback_name)
         if self.analytics_log_exists(user_id, metric_id):
             query = 'UPDATE analytics_log SET count=? WHERE user_id=? AND metric=?'
-            count = self._execute_query('SELECT count FROM analytics_log WHERE user_id=? AND metric=?', user_id,
-                                        metric_id).fetchall()[0][0]
+            count = self._execute_query('SELECT count FROM analytics_log WHERE user_id=? AND metric=?',
+                                        user_id, metric_id).fetchall()[0][0]
             self._execute_query(query, count + 1, user_id, metric_id)
             self.conn.commit()
         else:
             query = 'INSERT INTO analytics_log (metric, user_id) VALUES (?, ?)'
             self._execute_query(query, metric_id, user_id)
             self.conn.commit()
+
+    def is_admin(self, user_id: int) -> bool:
+        """Check if user is admin"""
+        query = 'SELECT user_id FROM admins WHERE user_id=?'
+        return len(self._execute_query(query, user_id).fetchall()) > 0
+
+    def get_permissions_list(self) -> list:
+        """Returns list of admin permissions"""
+        query = 'SELECT * FROM permissions'
+        return self._execute_query(query).fetchall()[0]

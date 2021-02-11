@@ -1,19 +1,63 @@
 {
   "WELCOME_MESSAGE": "Hi 👋, I'm Vocabulary Bot.",
   "ECHO_MESSAGE": "Sorry, I don't know what to say \uD83D\uDE44",
+  "HELP": {
+    "TEXT": "Select your question",
+    "BUTTONS": [
+      {
+        "TEXT": "What is Vocabulary Bot",
+        "CALLBACK_DATA": "help_question_whatis"
+      },
+      {
+        "TEXT": "How to manage my vocabulary?",
+        "CALLBACK_DATA": "help_question_howto"
+      },
+      {
+        "TEXT": "Common rules",
+        "CALLBACK_DATA": "help_question_common"
+      }
+    ]
+  },
   "MAIN_MENU": {
+    "BUTTONS": [
+      "📃 Dictionary",
+      "🏆 Achievements",
+      "🥇 Rating",
+      "⚙ Settings",
+      "❓ Help"
+    ]
+  },
+  "BACK_MAIN_MENU": {
+    "TEXT": "Main menu",
+    "BUTTON": "🔙 Back"
+  },
+  "DICTIONARY": {
+    "TEXT": "Your dictionary",
     "BUTTONS": [
       "➕ Add word",
       "➖ Delete word",
       "✏ Edit word",
-      "📃 Dictionary",
-      "⚙ Settings",
-      "❓ Help"
+      "🔎 Find word",
+      "📝 Quiz"
+    ]
+  },
+  "SETTINGS": {
+    "TEXT": "Select the settings item",
+    "BUTTONS": [
+      {
+        "TEXT": "Interface",
+        "CALLBACK_DATA": "lang_settings"
+      },
+      {
+        "TEXT": "Newsletters",
+        "CALLBACK_DATA": "newsletters_settings"
+      }
     ]
   },
   "LANG_SETTINGS": {
     "TEXT": "Select interface language",
     "SUCCESS": "Interface language successfully changed",
+    "ERROR": "Interface already set to English",
     "BUTTONS": [
       {
         "TEXT": "English",
@@ -27,6 +71,14 @@
         "TEXT": "Russian",
         "CALLBACK_DATA": "lang_setting_ru"
       }
+    ]
+  },
+  "ADMIN": {
+    "ADMIN_PANEL_TEXT": "Admin panel",
+    "DEFAULT_PANEL_TEXT": "Default panel",
+    "BUTTONS": [
+      "🙎 Users",
+      "📧 Mailings"
     ]
   }
 }
