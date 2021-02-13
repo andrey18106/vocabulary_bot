@@ -3,6 +3,8 @@
   "ECHO_MESSAGE": "Sorry, I don't know what to say \uD83D\uDE44",
   "HELP": {
     "TEXT": "Select your question",
+    "BACK": "Back to questions",
+    "BACK_CALLBACK": "back_to_help",
     "BUTTONS": [
       {
         "TEXT": "What is Vocabulary Bot",
@@ -16,7 +18,10 @@
         "TEXT": "Common rules",
         "CALLBACK_DATA": "help_question_common"
       }
-    ]
+    ],
+    "help_question_whatis": "Vocabulary Bot - is your own different languages vocabulary with the achievements and rating system.",
+    "help_question_howto": "To manage your Vocabulary you can use appropriate keyboard commands accompanied by help messages.",
+    "help_question_common": "To be continued..."
   },
   "MAIN_MENU": {
     "BUTTONS": [
@@ -38,7 +43,8 @@
       "➖ Delete word",
       "✏ Edit word",
       "🔎 Find word",
-      "📝 Quiz"
+      "📝 Quiz",
+      "📉 Statistics"
     ]
   },
   "SETTINGS": {
@@ -46,11 +52,15 @@
     "BUTTONS": [
       {
         "TEXT": "Interface",
-        "CALLBACK_DATA": "lang_settings"
+        "CALLBACK_DATA": "settings_interface"
       },
       {
         "TEXT": "Newsletters",
-        "CALLBACK_DATA": "newsletters_settings"
+        "CALLBACK_DATA": "settings_newsletters"
+      },
+      {
+        "TEXT": "LinguaLeo import",
+        "CALLBACK_DATA": "settings_leo_import"
       }
     ]
   },
@@ -78,7 +88,14 @@
     "DEFAULT_PANEL_TEXT": "Default panel",
     "BUTTONS": [
       "🙎 Users",
-      "📧 Mailings"
+      "📧 Mailings",
+      "📉 Statistics"
     ]
+  },
+  "RATING": {
+    "TEXT": "Vocabulary Bot Rating"
+  },
+  "ACHIEVEMENTS": {
+    "TEXT": "Your vocabulary achievements"
   }
 }

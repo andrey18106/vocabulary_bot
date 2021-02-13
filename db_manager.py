@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 
+# TODO: Add user restrictions (new words per day, total vocabulary capacity, available number of tests)
+# TODO: Add Redis database for the Finite State Machine storage
+
 # ===== Default imports =====
 
 import logging
+import os
 import sqlite3
 
 
@@ -20,22 +24,42 @@ class DbManager:
             self.conn = sqlite3.connect(self.path_to_db)
             if not self._database_created():
                 self._init_database()
-            logging.getLogger(type(self).__name__).info(f' SQLite {sqlite3.version} database successfully loaded')
+            logging.getLogger(type(self).__name__).info(
+                f' SQLite {sqlite3.version} database successfully loaded '
+                f'[size: {round(os.path.getsize(self.path_to_db) / 1000)} KB]')
         except sqlite3.Error as error:
             logging.getLogger(type(self).__name__).error(f' SQLite3 Connection Error ({error})')
+
+    def close_connection(self):
+        """Close the connection (e.g. after shutdown the bot)"""
+        try:
+            self.conn.close()
+            logging.getLogger(type(self).__name__).info(f"Database connection successfully closed")
+        except sqlite3.Error as error:
+            logging.getLogger(type(self).__name__).error(f"Shutdown error [{error}]")
+
 
     def _database_created(self) -> bool:
         t_users_exists_query = '''SELECT name FROM sqlite_master WHERE type='table' AND name='users';'''
         t_words_exists_query = '''SELECT name FROM sqlite_master WHERE type='table' AND name='words';'''
         t_metrics_exists_query = '''SELECT name FROM sqlite_master WHERE type='table' AND name='metrics';'''
         t_analytics_log_exists_query = '''SELECT name FROM sqlite_master WHERE type='table' AND name='analytics_log';'''
+        t_permission_exists_query = '''SELECT name FROM sqlite_master WHERE type='table' AND name='permissions';'''
+        t_admins_exists_query = '''SELECT name FROM sqlite_master WHERE type='table' AND name='admins';'''
+        t_achievements_query = '''SELECT name FROM sqlite_master WHERE type='table' AND name='achievements';'''
 
         t_users_exists = len(self.conn.execute(t_users_exists_query).fetchall()) > 0
         t_words_exists = len(self.conn.execute(t_words_exists_query).fetchall()) > 0
         t_metrics_exists = len(self.conn.execute(t_metrics_exists_query).fetchall()) > 0
         t_analytics_log_exists = len(self.conn.execute(t_analytics_log_exists_query).fetchall()) > 0
+        t_permission_exists = len(self.conn.execute(t_permission_exists_query).fetchall()) > 0
+        t_admins_exists = len(self.conn.execute(t_admins_exists_query).fetchall()) > 0
+        t_achievements_exists = len(self.conn.execute(t_achievements_query).fetchall()) > 0
 
-        return t_users_exists & t_words_exists & t_metrics_exists & t_analytics_log_exists
+        result = t_users_exists & t_words_exists & t_metrics_exists & t_analytics_log_exists
+        result &= t_permission_exists & t_admins_exists & t_achievements_exists
+
+        return result
 
     def _init_database(self) -> None:
         """Create database structure"""
@@ -59,12 +83,31 @@ class DbManager:
                                     metric INT NOT NULL REFERENCES metrics (metric_id), 
                                     count INT NOT NULL DEFAULT (1), user_id INT NOT NULL
                                 );'''
+        permissions_table = '''CREATE TABLE permissions (
+                                permission_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                                permission_name TEXT NOT NULL
+                            );'''
+        admins_table = '''CREATE TABLE admins (
+                                admin_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                                user_id INT NOT NULL, 
+                                permission_level INTEGER NOT NULL REFERENCES permissions (permission_id)
+                            );'''
+        achievements_table = '''CREATE TABLE achievements (
+                                achievement_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                                achievement_name TEXT NOT NULL,
+                                achievement_points INT NOT NULL,
+                                achievement_threshold INT NOT NULL
+                            );
+        '''
 
         try:
             self.conn.execute(users_table)
             self.conn.execute(words_table)
             self.conn.execute(metrics_table)
             self.conn.execute(analytics_log_table)
+            self.conn.execute(permissions_table)
+            self.conn.execute(admins_table)
+            self.conn.execute(achievements_table)
             self.conn.commit()
             logging.getLogger(type(self).__name__).info('Database structure successfully created')
         except sqlite3.Error as error:
@@ -83,8 +126,7 @@ class DbManager:
 
     def add_user(self, user_id: int, user_nickname: str, user_firstname: str, user_lastname: str) -> None:
         """Adding a new user to the database"""
-        query = '''INSERT INTO users (user_id, user_nickname, user_firstname, user_lastname)
-                VALUES(?, ?, ?, ?)'''
+        query = '''INSERT INTO users (user_id, user_nickname, user_firstname, user_lastname) VALUES(?, ?, ?, ?)'''
         self._execute_query(query, user_id, user_nickname, user_firstname, user_lastname)
         self.conn.commit()
 
@@ -171,3 +213,7 @@ class DbManager:
         """Returns list of admin permissions"""
         query = 'SELECT * FROM permissions'
         return self._execute_query(query).fetchall()[0]
+
+    def get_user_dict(self, user_id: int) -> dict:
+        """TODO: Implement user dict in database"""
+        return {}

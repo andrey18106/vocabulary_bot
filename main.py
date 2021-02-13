@@ -1,15 +1,5 @@
 # -*- coding: utf-8 -*-
 
-# TODO: Add antiflood middleware
-# TODO: Try to change polling to webhook on local server just for performance tests
-# TODO: Learn handling bot unique links for some actions (like referral links)
-# TODO: Learn how to improve performance (throttling examples)
-# TODO: Create mechanism for mass messaging (newsletter)
-# TODO: Along with mass messaging mechanism implement the daily(or weakly) personal quizzes for all users (+settings)
-# TODO: After implementing basic functions (Add, Delete, Edit, Find) - test spell checking ready solutions
-
-# TODO: Refactor all handlers to separate files with class that initializing its own logical message handlers
-
 # ===== Default imports =====
 
 import logging
@@ -17,6 +7,7 @@ import logging
 # ===== External libs imports =====
 
 from aiogram import Bot, Dispatcher, executor
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
 # ===== Local imports =====
 
@@ -27,14 +18,17 @@ from vocabulary_bot import VocabularyBot
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=config.TOKEN)
-dp = Dispatcher(bot)
-vocabulary_bot = VocabularyBot(dp)
+storage = MemoryStorage()
+dp = Dispatcher(bot, storage=storage)
+vocabulary_bot = VocabularyBot(bot, dp)
 
 
 def main():
     """Application entry point"""
     # TODO: Change to webhooks in production
-    executor.start_polling(vocabulary_bot.dp, skip_updates=True)
+    executor.start_polling(dispatcher=vocabulary_bot.dp,
+                           skip_updates=True,
+                           on_shutdown=vocabulary_bot.shutdown)
 
 
 if __name__ == '__main__':

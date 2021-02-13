@@ -1,8 +1,19 @@
 # -*- coding: utf-8 -*-
 
+# TODO: Add command path checking (if typing manually command from the not reachable state (keyboard))
+# TODO: Implement Finite State Machine for the command path checking
+# TODO: Learn handling bot unique links for some actions (like referral links)
+# TODO: The daily (or weakly) personal quizzes via mass messaging mechanism for users (+ appropriate user settings)
+# TODO: After implementing basic functions (Add, Delete, Edit, Find, Stats ...) - test spell checking ready solutions
+
+# ===== Default imports =====
+
+import logging
+
 # ===== External libs imports =====
 
-from aiogram import Dispatcher, types
+from aiogram import Bot, Dispatcher, types
+from aiogram.utils.exceptions import Throttled
 
 # ===== Local imports =====
 
@@ -18,7 +29,8 @@ from markups_manager import MarkupManager
 class VocabularyBot:
     """Basic class for Vocabulary Bot necessary logics"""
 
-    def __init__(self, dispatcher: Dispatcher):
+    def __init__(self, bot: Bot, dispatcher: Dispatcher):
+        self.bot = bot
         self.dp = dispatcher
 
         self.db = DbManager(config.PATH_TO_DB)
@@ -26,33 +38,40 @@ class VocabularyBot:
         self.lang = LangManager(config.PATH_TO_TRANSLATIONS, self.db)
         self.markup = MarkupManager(self.lang)
         self.analytics = BotAnalytics(self.db)
-        self.admin = AdminManager(self.db, self.lang, self.markup, self.dp, self.analytics)
-        self.admin.init_message_handlers()
+        self.admin = AdminManager(self.bot, self.db, self.lang, self.markup, self.dp, self.analytics)
 
         self.callbacks = VocabularyBotCallbackHandler(self.db, self.lang, self.markup, self.analytics, self.dp)
 
         self.__init_handlers()
 
     def __init_handlers(self):
+        """Initializing basic Vocabulary Bot message handlers"""
+
         @self.dp.message_handler(commands=['start', 'help'])
         @self.analytics.default_metric
         async def welcome_message_handler(message: types.Message):
             """`/start` and `/help`commands handler"""
-            if self.db.is_user_exists(message['from']['id']):
-                user_lang = self.db.get_user_lang(message['from']['id'])
+            try:
+                await self.dp.throttle('start', rate=2)
+            except Throttled as error:
+                logging.getLogger(type(self).__name__).error(error)
             else:
-                self.db.add_user(message['from']['id'], message['from']['username'], message['from']['first_name'],
-                                 message['from']['last_name'])
-                self.db.set_user_lang(message['from']['id'], config.DEFAULT_LANG)
-                user_lang = config.DEFAULT_LANG
-            await message.answer(text=self.lang.get('WELCOME_MESSAGE', user_lang),
-                                 reply_markup=self.markup.get_main_menu_markup(user_lang))
+                if self.db.is_user_exists(message['from']['id']):
+                    user_lang = self.db.get_user_lang(message['from']['id'])
+                else:
+                    self.db.add_user(message['from']['id'], message['from']['username'], message['from']['first_name'],
+                                     message['from']['last_name'])
+                    self.db.set_user_lang(message['from']['id'], config.DEFAULT_LANG)
+                    user_lang = config.DEFAULT_LANG
+                await message.answer(text=self.lang.get('WELCOME_MESSAGE', user_lang),
+                                     reply_markup=self.markup.get_main_menu_markup(user_lang))
 
         @self.dp.message_handler(
             lambda message: message.text == self.lang.get_page_text('BACK_MAIN_MENU', 'BUTTON', self.db.get_user_lang(
                 message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG)))
         @self.analytics.default_metric
         async def back_main_menu_command_handler(message: types.Message):
+            """Back to main menu command handler"""
             user_lang = self.lang.parse_user_lang(message['from']['id'])
             await message.answer(text=self.lang.get_page_text('BACK_MAIN_MENU', 'TEXT', user_lang),
                                  reply_markup=self.markup.get_main_menu_markup(user_lang))
@@ -67,7 +86,7 @@ class VocabularyBot:
             user_lang = self.lang.parse_user_lang(message['from']['id'])
             await message.answer(text=self.lang.get_page_text('DICTIONARY', 'TEXT', user_lang),
                                  reply_markup=self.markup.get_dictionary_markup(user_lang))
-            await message.answer(text=self.lang.get_user_dict(message['from']['id']),
+            await message.answer(text=self.lang.get_user_dict(message['from']['id'], user_lang),
                                  reply_markup=self.markup.get_dict_pagination(message['from']['id'], user_lang))
 
         # IF MAIN_MENU -> ACHIEVEMENTS COMMAND
@@ -77,7 +96,8 @@ class VocabularyBot:
         @self.analytics.default_metric
         async def achievements_command_handler(message: types.Message):
             """TODO: Achievements page"""
-            pass
+            user_lang = self.lang.parse_user_lang(message['from']['id'])
+            await message.answer(text=self.lang.get_page_text("ACHIEVEMENTS", "TEXT", user_lang))
 
         # IF MAIN_MENU -> RATING COMMAND
         @self.dp.message_handler(
@@ -86,7 +106,8 @@ class VocabularyBot:
         @self.analytics.default_metric
         async def rating_command_handler(message: types.Message):
             """TODO: Rating page"""
-            pass
+            user_lang = self.lang.parse_user_lang(message['from']['id'])
+            await message.answer(text=self.lang.get_page_text("RATING", "TEXT", user_lang))
 
         # IF MAIN_MENU -> SETTINGS COMMAND
         @self.dp.message_handler(
@@ -96,8 +117,8 @@ class VocabularyBot:
         async def settings_command_handler(message: types.Message):
             """Handler for settings command (⚙ Settings)"""
             user_lang = self.lang.parse_user_lang(message['from']['id'])
-            await message.answer(text=self.lang.get_page_text("LANG_SETTINGS", "TEXT", user_lang),
-                                 reply_markup=self.markup.get_lang_settings_markup(user_lang))
+            await message.answer(text=self.lang.get_page_text("SETTINGS", "TEXT", user_lang),
+                                 reply_markup=self.markup.get_settings_markup(user_lang))
 
         # IF MAIN_MENU -> HELP COMMAND
         @self.dp.message_handler(
@@ -166,3 +187,7 @@ class VocabularyBot:
             """Default message handler for unrecognizable messages"""
             user_lang = self.lang.parse_user_lang(message['from']['id'])
             await message.answer(text=self.lang.get('ECHO_MESSAGE', user_lang))
+
+    def shutdown(self):
+        """Operations for safely bot shutdown"""
+        self.db.close_connection()

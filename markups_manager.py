@@ -9,9 +9,6 @@ from aiogram import types
 from lang_manager import LangManager
 
 
-# TODO: Export menus and buttons hierarchy to appropriate file
-
-
 class MarkupManager:
     """Class for working with Telegram Bot Buttons (markups)"""
 
@@ -27,6 +24,15 @@ class MarkupManager:
                 markup.add(types.reply_keyboard.KeyboardButton(text=markup_texts[i]))
             markup.add(types.reply_keyboard.KeyboardButton(text=markup_texts[(len(markup_texts) - 2)]),
                        types.reply_keyboard.KeyboardButton(text=markup_texts[(len(markup_texts) - 1)]))
+        return markup
+
+    def get_settings_markup(self, lang_code: str) -> types.InlineKeyboardMarkup:
+        """Returns settings page markup"""
+        markup = types.InlineKeyboardMarkup()
+        markup_texts = self.lang.get_markup_localization('SETTINGS', lang_code)
+        if markup_texts is not None:
+            for button in markup_texts:
+                markup.add(types.InlineKeyboardButton(text=button['TEXT'], callback_data=button['CALLBACK_DATA']))
         return markup
 
     def get_lang_settings_markup(self, lang_code: str) -> types.InlineKeyboardMarkup:
@@ -75,4 +81,17 @@ class MarkupManager:
 
     def get_dict_pagination(self, user_id: int, lang_code: str) -> types.InlineKeyboardMarkup:
         """TODO: Implement dict pagination"""
+        pagination_markup = types.InlineKeyboardMarkup()
+        pagination_markup.row(types.InlineKeyboardButton(text="⏪", callback_data='first'),
+                              types.InlineKeyboardButton(text="⬅", callback_data='prev'),
+                              types.InlineKeyboardButton(text="➡", callback_data='next'),
+                              types.InlineKeyboardButton(text="⏩", callback_data='last'))
+        return pagination_markup
+
+    def get_help_back_markup(self, user_lang: str) -> types.InlineKeyboardMarkup:
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton(text=self.lang.get_page_text("HELP", "BACK", user_lang),
+                                              callback_data=self.lang.get_page_text("HELP", "BACK_CALLBACK",
+                                                                                    user_lang)))
+        return markup
         pass
