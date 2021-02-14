@@ -49,9 +49,10 @@ class AdminManager:
         @self.analytics.default_metric
         async def default_command_message_handler(message: types.Message):
             """`/default` command handler"""
-            user_lang = self.lang.parse_user_lang(message['from']['id'])
-            await message.answer(text=self.lang.get_page_text('ADMIN', 'DEFAULT_PANEL_TEXT', user_lang),
-                                 reply_markup=self.markup.get_main_menu_markup(user_lang))
+            if self.db.is_admin(message['from']['id']):
+                user_lang = self.lang.parse_user_lang(message['from']['id'])
+                await message.answer(text=self.lang.get_page_text('ADMIN', 'DEFAULT_PANEL_TEXT', user_lang),
+                                     reply_markup=self.markup.get_main_menu_markup(user_lang))
 
     def get_admin_permissions(self, user_id: int) -> list:
         """

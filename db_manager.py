@@ -38,27 +38,12 @@ class DbManager:
         except sqlite3.Error as error:
             logging.getLogger(type(self).__name__).error(f"Shutdown error [{error}]")
 
-
     def _database_created(self) -> bool:
-        t_users_exists_query = '''SELECT name FROM sqlite_master WHERE type='table' AND name='users';'''
-        t_words_exists_query = '''SELECT name FROM sqlite_master WHERE type='table' AND name='words';'''
-        t_metrics_exists_query = '''SELECT name FROM sqlite_master WHERE type='table' AND name='metrics';'''
-        t_analytics_log_exists_query = '''SELECT name FROM sqlite_master WHERE type='table' AND name='analytics_log';'''
-        t_permission_exists_query = '''SELECT name FROM sqlite_master WHERE type='table' AND name='permissions';'''
-        t_admins_exists_query = '''SELECT name FROM sqlite_master WHERE type='table' AND name='admins';'''
-        t_achievements_query = '''SELECT name FROM sqlite_master WHERE type='table' AND name='achievements';'''
-
-        t_users_exists = len(self.conn.execute(t_users_exists_query).fetchall()) > 0
-        t_words_exists = len(self.conn.execute(t_words_exists_query).fetchall()) > 0
-        t_metrics_exists = len(self.conn.execute(t_metrics_exists_query).fetchall()) > 0
-        t_analytics_log_exists = len(self.conn.execute(t_analytics_log_exists_query).fetchall()) > 0
-        t_permission_exists = len(self.conn.execute(t_permission_exists_query).fetchall()) > 0
-        t_admins_exists = len(self.conn.execute(t_admins_exists_query).fetchall()) > 0
-        t_achievements_exists = len(self.conn.execute(t_achievements_query).fetchall()) > 0
-
-        result = t_users_exists & t_words_exists & t_metrics_exists & t_analytics_log_exists
-        result &= t_permission_exists & t_admins_exists & t_achievements_exists
-
+        tables = ['users', 'words', 'metrics', 'analytics_log', 'permissions', 'admins', 'achievements']
+        query = '''SELECT name FROM sqlite_master WHERE type='table' AND name=?;'''
+        result = True
+        for table_name in tables:
+            result &= len(self._execute_query(query, table_name).fetchall()) > 0
         return result
 
     def _init_database(self) -> None:
