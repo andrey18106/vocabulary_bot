@@ -20,10 +20,11 @@ class MarkupManager:
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         markup_texts = self.lang.get_markup_localization('MAIN_MENU', lang_code)
         if markup_texts is not None:
-            for i in range(0, len(markup_texts) - 2):
-                markup.add(types.reply_keyboard.KeyboardButton(text=markup_texts[i]))
-            markup.add(types.reply_keyboard.KeyboardButton(text=markup_texts[(len(markup_texts) - 2)]),
-                       types.reply_keyboard.KeyboardButton(text=markup_texts[(len(markup_texts) - 1)]))
+            markup.add(types.reply_keyboard.KeyboardButton(text=markup_texts[0]))
+            markup.add(types.reply_keyboard.KeyboardButton(text=markup_texts[1]))
+            for i in range(2, len(markup_texts) - 1, 2):
+                markup.add(types.reply_keyboard.KeyboardButton(text=markup_texts[i]),
+                           types.reply_keyboard.KeyboardButton(text=markup_texts[i + 1]))
         return markup
 
     def get_settings_markup(self, lang_code: str) -> types.InlineKeyboardMarkup:
@@ -59,7 +60,7 @@ class MarkupManager:
         markup_texts = self.lang.get_inline_markup_localization('DICTIONARY', lang_code)
         if markup_texts is not None:
             for i in range(0, len(markup_texts), 2):
-                if i < len(markup_texts) - 2:
+                if i < len(markup_texts) - 1:
                     markup.add(types.reply_keyboard.KeyboardButton(text=markup_texts[i]),
                                types.reply_keyboard.KeyboardButton(text=markup_texts[i + 1]))
                 else:
@@ -69,23 +70,23 @@ class MarkupManager:
         return markup
 
     def get_admin_markup(self, permissions: list, lang_code: str) -> types.ReplyKeyboardMarkup:
-        """TODO: Admin markup"""
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         markup_texts = self.lang.get_markup_localization('ADMIN', lang_code)
         if markup_texts is not None:
-            for button_text in markup_texts:
-                markup.add(types.reply_keyboard.KeyboardButton(text=button_text))
+            for i in range(0, len(markup_texts) - 1, 2):
+                markup.add(types.reply_keyboard.KeyboardButton(text=markup_texts[i]),
+                           types.reply_keyboard.KeyboardButton(text=markup_texts[i + 1]))
         markup.add(
             types.reply_keyboard.KeyboardButton(text=self.lang.get_page_text("BACK_MAIN_MENU", "BUTTON", lang_code)))
         return markup
 
-    def get_dict_pagination(self, user_id: int, lang_code: str) -> types.InlineKeyboardMarkup:
+    def get_dict_pagination(self, action: str) -> types.InlineKeyboardMarkup:
         """TODO: Implement dict pagination"""
         pagination_markup = types.InlineKeyboardMarkup()
-        pagination_markup.row(types.InlineKeyboardButton(text="⏪", callback_data='first'),
-                              types.InlineKeyboardButton(text="⬅", callback_data='prev'),
-                              types.InlineKeyboardButton(text="➡", callback_data='next'),
-                              types.InlineKeyboardButton(text="⏩", callback_data='last'))
+        pagination_markup.row(types.InlineKeyboardButton(text="⏮", callback_data=f'first_{action}'),
+                              types.InlineKeyboardButton(text="⬅", callback_data=f'prev_{action}'),
+                              types.InlineKeyboardButton(text="➡", callback_data=f'next_{action}'),
+                              types.InlineKeyboardButton(text="⏭", callback_data=f'last_{action}'))
         return pagination_markup
 
     def get_help_back_markup(self, user_lang: str) -> types.InlineKeyboardMarkup:
@@ -94,4 +95,7 @@ class MarkupManager:
                                               callback_data=self.lang.get_page_text("HELP", "BACK_CALLBACK",
                                                                                     user_lang)))
         return markup
-        pass
+
+    def get_admin_database_markup(self, lang_code: str) -> types.InlineKeyboardMarkup:
+        markup = types.InlineKeyboardMarkup()
+        return markup

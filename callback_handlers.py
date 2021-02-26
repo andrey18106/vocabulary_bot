@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 
+# ===== Default imports =====
+
+import logging
+
 # ===== External libs imports =====
 
 from aiogram import Dispatcher, types
@@ -17,7 +21,6 @@ class VocabularyBotCallbackHandler:
 
     def __init__(self, db_manager: DbManager, lang_manager: LangManager, markup_manager: MarkupManager,
                  analytics: BotAnalytics, dispatcher: Dispatcher):
-        """TODO: Implement handlers"""
         self.db = db_manager
         self.lang = lang_manager
         self.markup = markup_manager
@@ -26,18 +29,15 @@ class VocabularyBotCallbackHandler:
         self.__init_handlers()
 
     def __init_handlers(self):
-        """Initializing callback message handlers"""
-
         # CALLBACK HANDLER FOR USER LANGUAGE SETTINGS
         @self.dp.callback_query_handler(lambda query: query.data.startswith('lang_setting_'))
         @self.analytics.callback_metric
         async def language_settings_callback_handler(query: types.CallbackQuery):
             """Handle selecting preferred interface language"""
-            user_id = query['from']['id']
-            user_lang = self.lang.parse_user_lang(user_id)
+            user_lang = self.lang.parse_user_lang(query['from']['id'])
             selected_lang = query['data'][-2:]
             if selected_lang != user_lang:
-                self.db.set_user_lang(user_id, selected_lang)
+                self.db.set_user_lang(query['from']['id'], selected_lang)
                 await query.message.delete()
                 await query.message.answer(text=self.lang.get_page_text('LANG_SETTINGS', 'SUCCESS', selected_lang),
                                            reply_markup=self.markup.get_main_menu_markup(selected_lang))
@@ -80,4 +80,32 @@ class VocabularyBotCallbackHandler:
                 await query.message.edit_reply_markup(self.markup.get_lang_settings_markup(user_lang))
                 await query.answer()
             else:
-                await query.answer()
+                await query.answer('In developing...', show_alert=True)
+
+        @self.dp.callback_query_handler(lambda query: query.data.startswith('first_'))
+        @self.analytics.callback_metric
+        async def pagination_first_callback_handler(query: types.CallbackQuery):
+            action = query.data[6:]
+            logging.getLogger(type(self).__name__).info(f'[{action}] callback executed.')
+            await query.answer()
+
+        @self.dp.callback_query_handler(lambda query: query.data.startswith('prev_'))
+        @self.analytics.callback_metric
+        async def pagination_prev_callback_handler(query: types.CallbackQuery):
+            action = query.data[5:]
+            logging.getLogger(type(self).__name__).info(f'[{action}] callback executed.')
+            await query.answer()
+
+        @self.dp.callback_query_handler(lambda query: query.data.startswith('next_'))
+        @self.analytics.callback_metric
+        async def pagination_next_callback_handler(query: types.CallbackQuery):
+            action = query.data[5:]
+            logging.getLogger(type(self).__name__).info(f'[{action}] callback executed.')
+            await query.answer()
+
+        @self.dp.callback_query_handler(lambda query: query.data.startswith('last_'))
+        @self.analytics.callback_metric
+        async def pagination_last_callback_handler(query: types.CallbackQuery):
+            action = query.data[5:]
+            logging.getLogger(type(self).__name__).info(f'[{action}] callback executed.')
+            await query.answer()

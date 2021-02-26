@@ -2,11 +2,12 @@
 
 # ===== Default imports =====
 
+import asyncio
 import logging
 
 # ===== External libs imports =====
 
-from aiogram import Bot, Dispatcher, executor
+from aiogram import Bot, Dispatcher
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
 # ===== Local imports =====
@@ -14,22 +15,23 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 import config
 from vocabulary_bot import VocabularyBot
 
-# ===== Basic initializations =====
 
-logging.basicConfig(level=logging.INFO)
-bot = Bot(token=config.TOKEN)
-storage = MemoryStorage()
-dp = Dispatcher(bot, storage=storage)
-vocabulary_bot = VocabularyBot(bot, dp)
-
-
-def main():
+async def main():
     """Application entry point"""
     # TODO: Change to webhooks in production
-    executor.start_polling(dispatcher=vocabulary_bot.dp,
-                           skip_updates=True,
-                           on_shutdown=vocabulary_bot.shutdown)
+
+    # ===== Basic initializations =====
+
+    logging.basicConfig(level=logging.INFO)
+    bot = Bot(token=config.TOKEN)
+    storage = MemoryStorage()  # TODO: Change MemoryStorage to Redis
+    dp = Dispatcher(bot, storage=storage)
+    vocabulary_bot = VocabularyBot(bot, dp)
+
+    await vocabulary_bot.init_commands()
+    await dp.skip_updates()
+    await dp.start_polling()
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())

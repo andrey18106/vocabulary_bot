@@ -1,5 +1,5 @@
 {
-  "WELCOME_MESSAGE": "Hi 👋, I'm Vocabulary Bot.",
+  "WELCOME_MESSAGE": "Hi 👋, I'm Vocabulary Bot.\n\nWith my help, You can collect your unknown words and repeat their knowledge regularly.",
   "ECHO_MESSAGE": "Sorry, I don't know what to say \uD83D\uDE44",
   "HELP": {
     "TEXT": "Select your question",
@@ -11,23 +11,24 @@
         "CALLBACK_DATA": "help_question_whatis"
       },
       {
-        "TEXT": "How to manage my vocabulary?",
+        "TEXT": "How to manage my vocabulary",
         "CALLBACK_DATA": "help_question_howto"
       },
       {
-        "TEXT": "Common rules",
+        "TEXT": "How to support us",
         "CALLBACK_DATA": "help_question_common"
       }
     ],
     "help_question_whatis": "Vocabulary Bot - is your own different languages vocabulary with the achievements and rating system.",
     "help_question_howto": "To manage your Vocabulary you can use appropriate keyboard commands accompanied by help messages.",
-    "help_question_common": "To be continued..."
+    "help_question_common": "To support us you can donate to one of our wallets any amount."
   },
   "MAIN_MENU": {
     "BUTTONS": [
       "📃 Dictionary",
       "🏆 Achievements",
       "🥇 Rating",
+      "🙎‍♂️Profile",
       "⚙ Settings",
       "❓ Help"
     ]
@@ -38,6 +39,9 @@
   },
   "DICTIONARY": {
     "TEXT": "Your dictionary",
+    "EMPTY_DICTIONARY": "Your dictionary is empty. Start collecting words now.",
+    "WORD_INFO": "Word info from your dictionary",
+    "NOT_FOUND": "Unfortunately, word not found in your dictionary",
     "BUTTONS": [
       "➕ Add word",
       "➖ Delete word",
@@ -46,6 +50,13 @@
       "📝 Quiz",
       "📉 Statistics"
     ]
+  },
+  "PROFILE": {
+    "TEXT": "👨 Your profile",
+    "DATE_FROM": "📅 User from",
+    "LANG_SETTING": "🌐 Interface language",
+    "DICT_CAPACITY": "📖 Words in dictionary",
+    "REFERRALS": "🙋‍♂️Referrals"
   },
   "SETTINGS": {
     "TEXT": "Select the settings item",
@@ -89,13 +100,41 @@
     "BUTTONS": [
       "🙎 Users",
       "📧 Mailings",
-      "📉 Statistics"
-    ]
+      "📉 Analytics",
+      "🗄 Database"
+    ],
+    "USERS": "Bot users",
+    "STATISTICS": "Statistics of usage",
+    "MAILINGS": "Mailing to bot users",
+    "DATABASE": "Database manager"
   },
   "RATING": {
-    "TEXT": "Vocabulary Bot Rating"
+    "TEXT": "Vocabulary Bot Rating",
+    "NOT_AVAILABLE": "Vocabulary Bot Rating currently unavailable. Keep waiting for it, while the number of users increases."
   },
   "ACHIEVEMENTS": {
     "TEXT": "Your vocabulary achievements"
+  },
+  "THROTTLING": {
+      "LANG_SETTINGS": "The interface language can be changed only once per minute."
+  },
+  "QUIZ": {
+    "IN_DEVELOPING": "Quiz is in developing..."
+  },
+  "ADD_WORD": {
+    "WELCOME_TEXT": "Send me a new word in the next message",
+    "IN_DEVELOPING": "Add word command is in developing..."
+  },
+  "DELETE_WORD": {
+    "IN_DEVELOPING": "Delete word command is in developing..."
+  },
+  "EDIT_WORD": {
+    "IN_DEVELOPING": "Edit word command is in developing..."
+  },
+  "FIND_WORD": {
+    "IN_DEVELOPING": "Find word command is in developing..."
+  },
+  "STATISTICS": {
+    "IN_DEVELOPING": "Statistics is in developing..."
   }
 }

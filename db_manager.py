@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
-# TODO: Add user restrictions (new words per day, total vocabulary capacity, available number of tests)
-# TODO: Add Redis database for the Finite State Machine storage
+# TODO: Add user restrictions according to API limits
+# TODO: (new words per day, total vocabulary capacity, available number of quizzes, number of instant translations)
+# TODO: Create Glossary database structure (for reducing API usage because of its limits)
 
 # ===== Default imports =====
 
+from datetime import datetime
 import logging
 import os
 import sqlite3
@@ -16,6 +18,7 @@ class DbManager:
     conn = None  # Connection to SQLite3 database
 
     def __init__(self, path_to_db: str):
+
         self.path_to_db = path_to_db
 
     def create_connection(self):
@@ -39,7 +42,8 @@ class DbManager:
             logging.getLogger(type(self).__name__).error(f"Shutdown error [{error}]")
 
     def _database_created(self) -> bool:
-        tables = ['users', 'words', 'metrics', 'analytics_log', 'permissions', 'admins', 'achievements']
+        tables = ['users', 'words', 'metrics', 'analytics_log', 'permissions', 'admins', 'achievements',
+                  'stock_vocabulary']
         query = '''SELECT name FROM sqlite_master WHERE type='table' AND name=?;'''
         result = True
         for table_name in tables:
@@ -52,13 +56,20 @@ class DbManager:
                             user_id INT PRIMARY KEY NOT NULL, 
                             user_nickname STRING, 
                             user_firstname STRING, 
-                            user_lastname STRING, lang TEXT
+                            user_lastname STRING, 
+                            lang TEXT,
+                            date_added DATETIME,
+                            referrals INT DEFAULT (0) 
                         );'''
         words_table = '''CREATE TABLE words (
-                            word_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
-                            word_string VARCHAR NOT NULL, 
-                            date_added DATETIME NOT NULL
-                        );'''
+                        word_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        user_id INTEGER REFERENCES users (user_id) NOT NULL,
+                        word_string TEXT NOT NULL,
+                        word_translation TEXT,
+                        date_added DATETIME NOT NULL,
+                        from_lang TEXT,
+                        to_lang TEXT
+                    );'''
         metrics_table = '''CREATE TABLE metrics (
                             metric_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
                             metric_name TEXT NOT NULL
@@ -82,8 +93,14 @@ class DbManager:
                                 achievement_name TEXT NOT NULL,
                                 achievement_points INT NOT NULL,
                                 achievement_threshold INT NOT NULL
-                            );
-        '''
+                            );'''
+
+        stock_vocabulary_table = '''CREATE TABLE stock_vocabulary (
+                                    word_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                                    word_string TEXT NOT NULL,
+                                    word_transcription TEXT,
+                                    date_added DATETIME NOT NULL
+                                );'''
 
         try:
             self.conn.execute(users_table)
@@ -111,8 +128,9 @@ class DbManager:
 
     def add_user(self, user_id: int, user_nickname: str, user_firstname: str, user_lastname: str) -> None:
         """Adding a new user to the database"""
-        query = '''INSERT INTO users (user_id, user_nickname, user_firstname, user_lastname) VALUES(?, ?, ?, ?)'''
-        self._execute_query(query, user_id, user_nickname, user_firstname, user_lastname)
+        query = '''INSERT INTO users (user_id, user_nickname, user_firstname, user_lastname, date_added) 
+                   VALUES(?, ?, ?, ?, ?)'''
+        self._execute_query(query, user_id, user_nickname, user_firstname, user_lastname, datetime.now().date())
         self.conn.commit()
 
     def get_user_lang(self, user_id: int) -> str:
@@ -199,6 +217,43 @@ class DbManager:
         query = 'SELECT * FROM permissions'
         return self._execute_query(query).fetchall()[0]
 
-    def get_user_dict(self, user_id: int) -> dict:
+    def get_user_dict(self, user_id: int) -> list:
         """TODO: Implement user dict in database"""
-        return {}
+        query = 'SELECT word_id, word_string, word_translation, from_lang, to_lang FROM words WHERE user_id=?'
+        user_dict = self._execute_query(query, user_id).fetchall()
+        return user_dict
+
+    def word_in_user_dict(self, word_id: int, user_id: int) -> bool:
+        query = 'SELECT word_id FROM words WHERE word_id=? AND user_id=?'
+        return len(self._execute_query(query, word_id, user_id).fetchall()) > 0
+
+    def get_user_word(self, word_id: int, user_id: int) -> list:
+        query = 'SELECT * FROM words WHERE word_id=? AND user_id=?'
+        return self._execute_query(query, word_id, user_id).fetchall()[0]
+
+    def get_admin_statistics(self) -> list:
+        query = '''SELECT metric, SUM(count) AS metric_total, metrics.metric_name 
+        FROM analytics_log INNER JOIN metrics ON metrics.metric_id = metric 
+        GROUP BY metric ORDER BY metric_total DESC'''
+        return self._execute_query(query).fetchall()
+
+    def get_users_list(self) -> list:
+        query = 'SELECT user_id FROM users'
+        return self._execute_query(query).fetchall()
+
+    def get_user_info(self, user_id: int) -> list:
+        query = 'SELECT * FROM users WHERE user_id=?'
+        return self._execute_query(query, user_id).fetchall()[0]
+
+    def get_user_dict_info(self, user_id: int) -> int:
+        query = 'SELECT * FROM words WHERE user_id=?'
+        return len(self._execute_query(query, user_id).fetchall())
+
+    def get_user_referral_count(self, user_id: int) -> int:
+        query = 'SELECT referrals FROM users WHERE user_id=?'
+        return self._execute_query(query, user_id).fetchall()[0][0]
+
+    def update_referral_count(self, user_id: int):
+        query = 'UPDATE users SET referrals=? WHERE user_id=?'
+        self._execute_query(query, self.get_user_referral_count(user_id) + 1, user_id)
+        self.conn.commit()

@@ -30,7 +30,7 @@ class BotAnalytics:
 
     def _log_message_handler(self, handler_name: str, user_id: int) -> None:
         self.db.log_default_metric(handler_name, user_id, self.db.get_metric_id(handler_name))
-        logging.getLogger(type(self).__name__).info(f' Analytics message handler executed [{handler_name}]')
+        logging.getLogger(type(self).__name__).info(f'[{user_id}] Analytics message handler executed [{handler_name}]')
 
     def callback_metric(self, callback_handler):
         """Decorator for callback handlers. Collects data (user, handler) and stores in DB"""
@@ -42,4 +42,5 @@ class BotAnalytics:
 
     def _log_callback_handler(self, callback_name: str, user_id: int) -> None:
         self.db.log_callback_metric(callback_name, user_id, self.db.get_metric_id(callback_name))
-        logging.getLogger(type(self).__name__).info(f' Analytics callback handler executed [{callback_name}]')
+        logging.getLogger(type(self).__name__).info(
+            f'[{user_id}] Analytics callback handler executed [{callback_name}]')
