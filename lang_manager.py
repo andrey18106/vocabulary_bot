@@ -17,10 +17,9 @@ from db_manager import DbManager
 
 
 class LangManager:
-    """Class for working with bot localization"""
+    """Class for working with bot localization and other text outputs"""
 
     def __init__(self, path_to_translations: str, db_manager: DbManager):
-        """Initializing existing localizations"""
         self.path_to_translations = path_to_translations
         self.db = db_manager
         self.localizations = {}
@@ -59,7 +58,6 @@ class LangManager:
             return self.localizations[DEFAULT_LANG][key]['BUTTONS']
 
     def get_page_text(self, key: str, value: str, lang_code: str) -> str:
-        """Returns lang settings text"""
         if lang_code in self.localizations and key in self.localizations[lang_code]:
             return self.localizations[lang_code][key][value]
         else:
@@ -73,7 +71,6 @@ class LangManager:
             return self.localizations[DEFAULT_LANG][key]['BUTTONS']
 
     def get_user_dict(self, user_id: int, lang_code: str) -> str:
-        """TODO: Implement user dict output"""
         user_dict = self.db.get_user_dict(user_id)
         result_string = ''
         if len(user_dict) > 0:
@@ -101,11 +98,6 @@ class LangManager:
                 statistics_string += f'{stat[2]} [{stat[1]}]\n'
             return statistics_string
 
-    def get_words_api_page(self, user_id: int, user_lang: str) -> str:
-        words_api_page = 'WORDS API STATS:\n\n'
-        words_api_page += str(self.db.get_words_api_stats())
-        return words_api_page
-
     def get_admin_users_page(self, lang_code: str) -> str:
         users_list = self.db.get_users_list()
         users_page = self.get_page_text('ADMIN', 'USERS', lang_code) + '\n\n'
@@ -127,4 +119,12 @@ class LangManager:
                              f'{self.db.get_user_dict_info(user_id)}\n'
         user_profile_page += f'*{self.get_page_text("PROFILE", "REFERRALS", lang_code)}*: ' \
                              f'{self.db.get_user_referral_count(user_id)}'
+        if self.db.get_user_referrer(user_id) is not None:
+            referrer_info = self.db.get_user_info(self.db.get_user_referrer(user_id))
+            user_profile_page += f'\n*{self.get_page_text("PROFILE", "REFERRER", lang_code)}*: ' \
+                                 f'{referrer_info[2]} {referrer_info[3]} (@{referrer_info[1]})'
         return user_profile_page
+
+    def get_user_referral_link_page(self, user_id: int, lang_code: str) -> str:
+        user_referral_link = 'https://t.me/vocabularies_bot?start=referral_' + str(user_id)
+        return self.get_page_text("PROFILE", "REFERRAL_LINK_TEXT", lang_code) + "\n\n" + user_referral_link

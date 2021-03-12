@@ -10,6 +10,7 @@ import functools
 from aiogram import types
 
 # ===== Local imports =====
+from aiogram.dispatcher import FSMContext
 
 from db_manager import DbManager
 
@@ -34,13 +35,22 @@ class BotAnalytics:
 
     def callback_metric(self, callback_handler):
         """Decorator for callback handlers. Collects data (user, handler) and stores in DB"""
+
         @functools.wraps(callback_handler)
         def decorator(query: types.CallbackQuery):
             self._log_callback_handler(callback_handler.__name__, query['from']['id'])
             return callback_handler(query)
+
         return decorator
 
     def _log_callback_handler(self, callback_name: str, user_id: int) -> None:
         self.db.log_callback_metric(callback_name, user_id, self.db.get_metric_id(callback_name))
         logging.getLogger(type(self).__name__).info(
             f'[{user_id}] Analytics callback handler executed [{callback_name}]')
+
+    def fsm_metric(self, message_handler):
+        @functools.wraps(message_handler)
+        def decorator(message: types.Message, state: FSMContext):
+            self._log_message_handler(message_handler.__name__, message['from']['id'])
+            return message_handler(message, state)
+        return decorator

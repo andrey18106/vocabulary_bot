@@ -2,7 +2,6 @@
 
 # TODO: Add user restrictions according to API limits
 # TODO: (new words per day, total vocabulary capacity, available number of quizzes, number of instant translations)
-# TODO: Create Glossary database structure (for reducing API usage because of its limits)
 
 # ===== Default imports =====
 
@@ -10,6 +9,7 @@ from datetime import datetime
 import logging
 import os
 import sqlite3
+from config import DEFAULT_LANG
 
 
 class DbManager:
@@ -18,11 +18,9 @@ class DbManager:
     conn = None  # Connection to SQLite3 database
 
     def __init__(self, path_to_db: str):
-
         self.path_to_db = path_to_db
 
     def create_connection(self):
-        """Connect to SQLite database"""
         try:
             self.conn = sqlite3.connect(self.path_to_db)
             if not self._database_created():
@@ -34,7 +32,6 @@ class DbManager:
             logging.getLogger(type(self).__name__).error(f' SQLite3 Connection Error ({error})')
 
     def close_connection(self):
-        """Close the connection (e.g. after shutdown the bot)"""
         try:
             self.conn.close()
             logging.getLogger(type(self).__name__).info(f"Database connection successfully closed")
@@ -51,7 +48,6 @@ class DbManager:
         return result
 
     def _init_database(self) -> None:
-        """Create database structure"""
         users_table = '''CREATE TABLE users (
                             user_id INT PRIMARY KEY NOT NULL, 
                             user_nickname STRING, 
@@ -59,7 +55,8 @@ class DbManager:
                             user_lastname STRING, 
                             lang TEXT,
                             date_added DATETIME,
-                            referrals INT DEFAULT (0) 
+                            referrals INT DEFAULT (0),
+                            referrer INT 
                         );'''
         words_table = '''CREATE TABLE words (
                         word_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -101,7 +98,6 @@ class DbManager:
                                     word_transcription TEXT,
                                     date_added DATETIME NOT NULL
                                 );'''
-
         try:
             self.conn.execute(users_table)
             self.conn.execute(words_table)
@@ -110,6 +106,7 @@ class DbManager:
             self.conn.execute(permissions_table)
             self.conn.execute(admins_table)
             self.conn.execute(achievements_table)
+            self.conn.execute(stock_vocabulary_table)
             self.conn.commit()
             logging.getLogger(type(self).__name__).info('Database structure successfully created')
         except sqlite3.Error as error:
@@ -122,50 +119,39 @@ class DbManager:
             logging.getLogger(type(self).__name__).error(f' SQLite3 Query Execution Error ({error})\n {query}, {args}')
 
     def is_user_exists(self, user_id: int) -> bool:
-        """Check if user exists in database by unique id"""
         query = 'SELECT * FROM users WHERE user_id=?'
         return len(self._execute_query(query, user_id).fetchall()) > 0
 
     def add_user(self, user_id: int, user_nickname: str, user_firstname: str, user_lastname: str) -> None:
-        """Adding a new user to the database"""
         query = '''INSERT INTO users (user_id, user_nickname, user_firstname, user_lastname, date_added) 
                    VALUES(?, ?, ?, ?, ?)'''
         self._execute_query(query, user_id, user_nickname, user_firstname, user_lastname, datetime.now().date())
         self.conn.commit()
 
     def get_user_lang(self, user_id: int) -> str:
-        """Returns user language setting"""
         query = 'SELECT lang FROM users WHERE user_id=?'
         result = self._execute_query(query, user_id).fetchall()
-        if len(result) > 0:
-            return str(result[0][0])
+        return str(result[0][0]) if len(result) > 0 else DEFAULT_LANG
 
     def set_user_lang(self, user_id: int, user_lang: str) -> None:
-        """Update user language setting in database"""
         query = 'UPDATE users SET lang=? WHERE user_id=?'
         self._execute_query(query, user_lang, user_id)
         self.conn.commit()
 
     def add_metric(self, metric_name):
-        """Creates metric record in database"""
         query = 'INSERT INTO metrics (metric_name) VALUES (?)'
         self._execute_query(query, metric_name)
         self.conn.commit()
 
     def metric_exists(self, metric_id: int) -> bool:
-        """Check if metric exists"""
         query = 'SELECT metric_id FROM metrics WHERE metric_id=?'
         return len(self._execute_query(query, metric_id).fetchall()) > 0
 
     def metric_name_exists(self, metric_name: str) -> bool:
-        """Check if metric exists
-        TODO: Add usage of this method
-        """
         query = 'SELECT metric_id FROM metrics WHERE metric_name=?'
         return len(self._execute_query(query, metric_name).fetchall()) > 0
 
     def get_metric_id(self, metric_name: str) -> int:
-        """Returns metric id by metric name"""
         if self.metric_name_exists(metric_name):
             query = 'SELECT metric_id FROM metrics WHERE metric_name=?'
             return self._execute_query(query, metric_name).fetchall()[0][0]
@@ -178,7 +164,6 @@ class DbManager:
                                        user_id, metric_id).fetchall()) > 0
 
     def log_default_metric(self, handler_name: str, user_id: int, metric_id: int) -> None:
-        """Saves the message metrics to the database"""
         if not self.metric_exists(metric_id):
             self.add_metric(handler_name)
         if self.analytics_log_exists(user_id, metric_id):
@@ -193,7 +178,6 @@ class DbManager:
             self.conn.commit()
 
     def log_callback_metric(self, callback_name: str, user_id: int, metric_id: int) -> None:
-        """Saves the callback metrics to the database"""
         if not self.metric_name_exists(callback_name):
             self.add_metric(callback_name)
         if self.analytics_log_exists(user_id, metric_id):
@@ -208,17 +192,14 @@ class DbManager:
             self.conn.commit()
 
     def is_admin(self, user_id: int) -> bool:
-        """Check if user is admin"""
         query = 'SELECT user_id FROM admins WHERE user_id=?'
         return len(self._execute_query(query, user_id).fetchall()) > 0
 
     def get_permissions_list(self) -> list:
-        """Returns list of admin permissions"""
         query = 'SELECT * FROM permissions'
         return self._execute_query(query).fetchall()[0]
 
     def get_user_dict(self, user_id: int) -> list:
-        """TODO: Implement user dict in database"""
         query = 'SELECT word_id, word_string, word_translation, from_lang, to_lang FROM words WHERE user_id=?'
         user_dict = self._execute_query(query, user_id).fetchall()
         return user_dict
@@ -257,3 +238,38 @@ class DbManager:
         query = 'UPDATE users SET referrals=? WHERE user_id=?'
         self._execute_query(query, self.get_user_referral_count(user_id) + 1, user_id)
         self.conn.commit()
+
+    def set_user_referrer(self, user_id: int, referrer_id: int):
+        query = 'UPDATE users SET referrer=? WHERE user_id=?'
+        self._execute_query(query, referrer_id, user_id)
+        self.conn.commit()
+
+    def get_user_referrer(self, user_id: int) -> int:
+        query = 'SELECT referrer FROM users WHERE user_id=?'
+        result = self._execute_query(query, user_id).fetchall()
+        return result[0][0] if len(result) > 0 else None
+
+    def add_user_word(self, word_string: str, word_translation: str, user_id: int, from_lang: str, to_lang: str):
+        query = '''INSERT INTO words (user_id, word_string, word_translation, date_added, from_lang, to_lang)
+                VALUES (?, ?, ?, ?, ?, ?)'''
+        self._execute_query(query, user_id, word_string, word_translation, datetime.now().date(), from_lang, to_lang)
+        self.conn.commit()
+
+    def get_user_word_by_str(self, word_string: str, user_id: int) -> int:
+        query = 'SELECT word_id FROM words WHERE user_id=? AND word_string=?'
+        result = self._execute_query(query, user_id, word_string).fetchall()
+        return result[0][0] if len(result) > 0 else None
+
+    def delete_user_word(self, word_id: int, user_id: int):
+        query = 'DELETE FROM words WHERE word_id=? AND user_id=?'
+        self._execute_query(query, word_id, user_id)
+        self.conn.commit()
+
+    def word_is_users(self, word_id: int, user_id:int) -> bool:
+        query = 'SELECT word_id FROM words WHERE word_id=? AND user_id=?'
+        return len(self._execute_query(query, word_id, user_id).fetchall()) > 0
+
+    def get_broadcast_users(self) -> list:
+        query = 'SELECT user_id FROM users'
+        result = self._execute_query(query).fetchall()
+        return map(lambda item: item[0], result) if len(result) > 0 else []

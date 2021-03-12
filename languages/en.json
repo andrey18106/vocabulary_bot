@@ -1,5 +1,6 @@
 {
   "WELCOME_MESSAGE": "Hi 👋, I'm Vocabulary Bot.\n\nWith my help, You can collect your unknown words and repeat their knowledge regularly.",
+  "HELP_MESSAGE": "Vocabulary Bot Help\n\n/start - to start the bot\n/help - get help message\n/settings - configure the bot settings\n/cancel - cancel command executing",
   "ECHO_MESSAGE": "Sorry, I don't know what to say \uD83D\uDE44",
   "HELP": {
     "TEXT": "Select your question",
@@ -56,7 +57,10 @@
     "DATE_FROM": "📅 User from",
     "LANG_SETTING": "🌐 Interface language",
     "DICT_CAPACITY": "📖 Words in dictionary",
-    "REFERRALS": "🙋‍♂️Referrals"
+    "REFERRALS": "🙋‍♂️Referrals",
+    "REFERRER": "✍ Referrer",
+    "REFERRAL_BUTTON_TEXT": "🔗 Get my referral link",
+    "REFERRAL_LINK_TEXT": "Your referral link to invite new users and get some bonuses"
   },
   "SETTINGS": {
     "TEXT": "Select the settings item",
@@ -108,6 +112,22 @@
     "MAILINGS": "Mailing to bot users",
     "DATABASE": "Database manager"
   },
+  "MAILINGS": {
+    "NEW": "Send me one text message, that would be used for broadcast to bot users",
+    "CONFIRMATION": "Confirm the message for broadcasting",
+    "SUCCESSFUL": "Broadcast successfully created",
+    "CANCELED": "Broadcast canceled",
+    "BUTTONS": [
+      {
+        "TEXT": "New mailing",
+        "CALLBACK_DATA": "mailings_new"
+      },
+      {
+        "TEXT": "Scheduled mailings",
+        "CALLBACK_DATA": "mailings_schedule_list"
+      }
+    ]
+  },
   "RATING": {
     "TEXT": "Vocabulary Bot Rating",
     "NOT_AVAILABLE": "Vocabulary Bot Rating currently unavailable. Keep waiting for it, while the number of users increases."
@@ -123,9 +143,22 @@
   },
   "ADD_WORD": {
     "WELCOME_TEXT": "Send me a new word in the next message",
+    "TRANSLATE_TEXT": "Ok. Now send me a translation of a new word in the next message",
+    "SUCCESSFUL_ADDED": "New word successfully added to your dictionary",
+    "CONFIRMATION": "Confirm the word adding",
+    "BUTTONS": [
+      "✔ Yes",
+      "❌ No"
+    ],
+    "NOT_VALID": "Word should contain only English letters. Try again",
+    "CANCELLED": "Adding a new word canceled",
     "IN_DEVELOPING": "Add word command is in developing..."
   },
   "DELETE_WORD": {
+    "WELCOME_TEXT": "Send me a word you want to delete",
+    "SUCCESSFUL_DELETED": "Word successfully deleted",
+    "CANCELLED": "Word deleting canceled",
+    "NOT_FOUND": "Word not found",
     "IN_DEVELOPING": "Delete word command is in developing..."
   },
   "EDIT_WORD": {

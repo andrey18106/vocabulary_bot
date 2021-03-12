@@ -14,6 +14,7 @@ from analytics import BotAnalytics
 from db_manager import DbManager
 from lang_manager import LangManager
 from markups_manager import MarkupManager
+from states.Mailing import AdminMailingState
 
 
 class VocabularyBotCallbackHandler:
@@ -109,3 +110,20 @@ class VocabularyBotCallbackHandler:
             action = query.data[5:]
             logging.getLogger(type(self).__name__).info(f'[{action}] callback executed.')
             await query.answer()
+
+        @self.dp.callback_query_handler(lambda query: query.data == 'profile_referral_link')
+        @self.analytics.callback_metric
+        async def profile_referral_link_callback_handler(query: types.CallbackQuery):
+            user_lang = self.lang.parse_user_lang(query['from']['id'])
+            await query.message.answer(self.lang.get_user_referral_link_page(query['from']['id'], user_lang))
+            await query.message.edit_reply_markup(None)
+            await query.answer()
+
+        @self.dp.callback_query_handler(lambda query: query.data == 'mailings_new')
+        @self.analytics.callback_metric
+        async def admin_mailings_new_callback_handler(query: types.CallbackQuery):
+            user_lang = self.lang.parse_user_lang(query['from']['id'])
+            await AdminMailingState.message.set()
+            await query.message.delete()
+            await query.message.answer(text=self.lang.get_page_text('MAILINGS', 'NEW', user_lang),
+                                       reply_markup=self.markup.get_cancel_markup())

@@ -99,3 +99,31 @@ class MarkupManager:
     def get_admin_database_markup(self, lang_code: str) -> types.InlineKeyboardMarkup:
         markup = types.InlineKeyboardMarkup()
         return markup
+
+    def get_profile_referral_markup(self, lang_code: str) -> types.InlineKeyboardMarkup:
+        markup = types.InlineKeyboardMarkup()
+        markup.add(
+            types.InlineKeyboardButton(text=self.lang.get_page_text("PROFILE", "REFERRAL_BUTTON_TEXT", lang_code),
+                                       callback_data="profile_referral_link"))
+        return markup
+
+    def get_confirmation_markup(self, lang_code: str) -> types.ReplyKeyboardMarkup:
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        markup_texts = self.lang.get_markup_localization('ADD_WORD', lang_code)
+        if markup_texts is not None:
+            for text in markup_texts:
+                markup.add(types.reply_keyboard.KeyboardButton(text))
+        return markup
+
+    def get_cancel_markup(self) -> types.ReplyKeyboardMarkup:
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        markup.add(types.reply_keyboard.KeyboardButton(text='/cancel'))
+        return markup
+
+    def get_mailings_markup(self, user_lang) -> types.InlineKeyboardMarkup:
+        markup = types.InlineKeyboardMarkup()
+        markup_texts = self.lang.get_markup_localization('MAILINGS', user_lang)
+        if markup_texts is not None:
+            for button in markup_texts:
+                markup.add(types.InlineKeyboardButton(text=button['TEXT'], callback_data=button['CALLBACK_DATA']))
+        return markup
