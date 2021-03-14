@@ -56,6 +56,7 @@
     "TEXT": "👨 Your profile",
     "DATE_FROM": "📅 User from",
     "LANG_SETTING": "🌐 Interface language",
+    "MAILINGS": "📨 Bot mailings",
     "DICT_CAPACITY": "📖 Words in dictionary",
     "REFERRALS": "🙋‍♂️Referrals",
     "REFERRER": "✍ Referrer",
@@ -98,6 +99,29 @@
       }
     ]
   },
+  "NEWSLETTER_SETTINGS": {
+    "TEXT": "Select options for newsletter settings",
+    "SUCCESS": "Newsletter settings successfully updated",
+    "BUTTONS": [
+      {
+        "TEXT": "✔ Enable all",
+        "CALLBACK_DATA": "news_setting_all"
+      },
+      {
+        "TEXT": "⚠ Only important",
+        "CALLBACK_DATA": "news_setting_important"
+      },
+      {
+        "TEXT": "❌ Disable all",
+        "CALLBACK_DATA": "news_setting_disable"
+      }
+    ],
+    "LEVELS": [
+      "Disabled",
+      "Only important",
+      "All enabled"
+    ]
+  },
   "ADMIN": {
     "ADMIN_PANEL_TEXT": "Admin panel",
     "DEFAULT_PANEL_TEXT": "Default panel",
@@ -130,7 +154,22 @@
   },
   "RATING": {
     "TEXT": "Vocabulary Bot Rating",
-    "NOT_AVAILABLE": "Vocabulary Bot Rating currently unavailable. Keep waiting for it, while the number of users increases."
+    "AMOUNT": "words amount",
+    "NOT_AVAILABLE": "Vocabulary Bot Rating currently unavailable. Keep waiting for it, while the number of users increases.",
+    "BUTTONS": [
+      {
+        "TEXT": "By words amount",
+        "CALLBACK_DATA": "rating_by_words_amount"
+      },
+      {
+        "TEXT": "By achievements",
+        "CALLBACK_DATA": "rating_by_achievements"
+      },
+      {
+        "TEXT": "By passed quizzes",
+        "CALLBACK_DATA": "rating_by_passed_quizzes"
+      }
+    ]
   },
   "ACHIEVEMENTS": {
     "TEXT": "Your vocabulary achievements"
@@ -139,6 +178,15 @@
       "LANG_SETTINGS": "The interface language can be changed only once per minute."
   },
   "QUIZ": {
+    "TEXT": "Quiz based on your dictionary. From it randomly choosing 10 words with random options, where only 1 is correct.",
+    "BUTTON_START": "Start the quiz",
+    "BUTTON_NEXT": "Next ➡",
+    "BUTTON_FINISH": "🏁 Finish ",
+    "FINISH": "Quiz successfully finished!",
+    "QUESTION": "Select the correct translation of the word: {}",
+    "EXPLANATION": "The correct answer is:",
+    "NON_SELECTED": "Select one of the options!",
+    "RESULTS": "Quiz results",
     "IN_DEVELOPING": "Quiz is in developing..."
   },
   "ADD_WORD": {
@@ -150,7 +198,7 @@
       "✔ Yes",
       "❌ No"
     ],
-    "NOT_VALID": "Word should contain only English letters. Try again",
+    "NOT_VALID": "The word should contain only English letters. Try again",
     "CANCELLED": "Adding a new word canceled",
     "IN_DEVELOPING": "Add word command is in developing..."
   },
@@ -162,9 +210,14 @@
     "IN_DEVELOPING": "Delete word command is in developing..."
   },
   "EDIT_WORD": {
+    "WELCOME_TEXT": "Send me a word from your dictionary you want to edit",
+    "WORD_FOUND": "Word to edit successfully found",
     "IN_DEVELOPING": "Edit word command is in developing..."
   },
   "FIND_WORD": {
+    "WELCOME_TEXT": "Send me a word you want to find",
+    "WORD_FOUND": "Searching result",
+    "NOT_FOUND": "Word not found in your dictionary",
     "IN_DEVELOPING": "Find word command is in developing..."
   },
   "STATISTICS": {

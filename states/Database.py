@@ -5,7 +5,5 @@
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
 
-class AdminMailingState(StatesGroup):
-    message = State()
-    confirmation = State()
-    send = State()
+class AdminDatabaseState(StatesGroup):
+    query = State()

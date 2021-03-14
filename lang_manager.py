@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # ===== Default imports =====
-
+import calendar
 from datetime import datetime
 import json
 import logging
@@ -107,6 +107,10 @@ class LangManager:
     def get_database_page(self, lang_code: str) -> str:
         return self.get_page_text('ADMIN', 'DATABASE', lang_code)
 
+    def _parse_mailings_level(self, mailings_level: int, lang_code: str) -> str:
+        newsletter_levels = self.get_page_text("NEWSLETTER_SETTINGS", "LEVELS", lang_code)
+        return newsletter_levels[mailings_level]
+
     def get_user_profile_page(self, user_id: int, lang_code: str) -> str:
         user_info = self.db.get_user_info(user_id)
         user_info_date = user_info[5].split('-')
@@ -115,8 +119,10 @@ class LangManager:
         user_profile_page = self.get_page_text('PROFILE', 'TEXT', lang_code) + '\n\n'
         user_profile_page += f'*{self.get_page_text("PROFILE", "DATE_FROM", lang_code)}*: {user_date_from}\n'
         user_profile_page += f'*{self.get_page_text("PROFILE", "LANG_SETTING", lang_code)}*: {user_info[4]}\n'
+        user_profile_page += f'*{self.get_page_text("PROFILE", "MAILINGS", lang_code)}*: '\
+                             f'{self._parse_mailings_level(user_info[8], lang_code)}\n'
         user_profile_page += f'*{self.get_page_text("PROFILE", "DICT_CAPACITY", lang_code)}*: ' \
-                             f'{self.db.get_user_dict_info(user_id)}\n'
+                             f'{self.db.get_user_dict_capacity(user_id)}\n'
         user_profile_page += f'*{self.get_page_text("PROFILE", "REFERRALS", lang_code)}*: ' \
                              f'{self.db.get_user_referral_count(user_id)}'
         if self.db.get_user_referrer(user_id) is not None:
@@ -128,3 +134,42 @@ class LangManager:
     def get_user_referral_link_page(self, user_id: int, lang_code: str) -> str:
         user_referral_link = 'https://t.me/vocabularies_bot?start=referral_' + str(user_id)
         return self.get_page_text("PROFILE", "REFERRAL_LINK_TEXT", lang_code) + "\n\n" + user_referral_link
+
+    def get_user_dict_stats_page(self, user_id: int, year: int, month: int, month_page: int, lang_code: str) -> str:
+        """TODO: Multiple language output"""
+        stats = self.db.get_user_dictionary_stats(user_id)
+        result = f'Statistics of adding words (page {month_page + 1} of {stats["total_pages"]}):\n\n'
+        result += f'*{year}* year:\n\n'
+        result += f'   *{calendar.month_name[int(month)]}*:\n\n'
+        page_data = stats['years'][str(year)]['months'][str(month)]['stats'][month_page]
+        for day in page_data:
+            dt = datetime.strftime(datetime(int(year), int(month), int(day)), "%d.%m.%Y")
+            result += f'      *{dt}* - {page_data[day]} word(s)\n'
+        result += f'\n   Total for *{calendar.month_name[int(month)]}*: ' \
+                  f'{stats["years"][str(year)]["months"][str(month)]["total"]} word(s)\n\n'
+        result += f'Total for *{year}*: {stats["years"][str(year)]["total"]} word(s)'
+        return result
+
+    def get_rating_page(self, user_id: int, lang_code: str) -> str:
+        result = self.get_page_text("RATING", "TEXT", lang_code) + ':\n\n'
+        top10_rating_list = self.db.get_rating_list(10, 0)
+        for i in range(0, len(top10_rating_list)):
+            if top10_rating_list[i][0] == user_id:
+                result += f'⚫ {i + 1}. '
+            else:
+                result += f'{i + 1}. '
+            result += f'{top10_rating_list[i][1]} '
+            result += f'({self.get_page_text("RATING", "AMOUNT", lang_code)}: {top10_rating_list[i][2]})'
+        return result
+
+    def get_quiz_results_page(self, quiz_results: list, lang_code: str) -> str:
+        result = self.get_page_text('QUIZ', 'RESULTS', lang_code) + ':\n\n'
+        for i in range(0, len(quiz_results)):
+            result += f'{i + 1}. *{quiz_results[i]["word"]}* '\
+                      f'(Your answer: {quiz_results[i]["options"][quiz_results[i]["selected_option"]]["text"]}'
+            if quiz_results[i]['selected_option'] != quiz_results[i]['correct_option']:
+                result += f', Correct answer: {quiz_results[i]["options"][quiz_results[i]["correct_option"]]["text"]}'
+                result += f' `[{quiz_results[i]["selected_option"] == quiz_results[i]["correct_option"]}]`)\n'
+            else:
+                result += f' `[{quiz_results[i]["selected_option"] == quiz_results[i]["correct_option"]}]`)\n'
+        return result

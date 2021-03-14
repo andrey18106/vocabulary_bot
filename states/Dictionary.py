@@ -16,5 +16,20 @@ class DictionaryDeleteWordState(StatesGroup):
     confirmation = State()
 
 
+class DictionaryEditWordState(StatesGroup):
+    search_query = State()
+    new_value = State()
+    confirmation = State()
+
+
 class DictionarySearchWordState(StatesGroup):
     search_query = State()
+    confirmation = State()
+
+
+class DictionaryQuizState(StatesGroup):
+    quiz_data = State()
+    user_answers = State()
+    index = State()
+    quiz_results = State()
+    finish = State()

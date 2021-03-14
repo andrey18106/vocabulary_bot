@@ -5,7 +5,6 @@
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
 
-class AdminMailingState(StatesGroup):
-    message = State()
-    confirmation = State()
-    send = State()
+class PaginationState(StatesGroup):
+    pagination_data = State()
+    pagination_page = State()

@@ -14,3 +14,5 @@ DEV_ID = os.getenv('DEV_ID')
 PATH_TO_DB = Path('.') / os.getenv('DB_NAME')
 PATH_TO_TRANSLATIONS = Path('.') / 'languages'
 DEFAULT_LANG = 'en'
+
+LINGVOLIVE_API_KEY = os.getenv('LINGVOLIVE_API_KEY')

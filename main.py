@@ -31,6 +31,7 @@ async def main():
     await vocabulary_bot.init_commands()
     await dp.skip_updates()
     await dp.start_polling()
+    await vocabulary_bot.shutdown()
 
 
 if __name__ == '__main__':

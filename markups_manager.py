@@ -80,7 +80,7 @@ class MarkupManager:
             types.reply_keyboard.KeyboardButton(text=self.lang.get_page_text("BACK_MAIN_MENU", "BUTTON", lang_code)))
         return markup
 
-    def get_dict_pagination(self, action: str) -> types.InlineKeyboardMarkup:
+    def get_pagination_markup(self, action: str) -> types.InlineKeyboardMarkup:
         """TODO: Implement dict pagination"""
         pagination_markup = types.InlineKeyboardMarkup()
         pagination_markup.row(types.InlineKeyboardButton(text="⏮", callback_data=f'first_{action}'),
@@ -126,4 +126,30 @@ class MarkupManager:
         if markup_texts is not None:
             for button in markup_texts:
                 markup.add(types.InlineKeyboardButton(text=button['TEXT'], callback_data=button['CALLBACK_DATA']))
+        return markup
+
+    def get_news_settings_markup(self, lang_code: str):
+        markup = types.InlineKeyboardMarkup()
+        markup_texts = self.lang.get_inline_markup_localization('NEWSLETTER_SETTINGS', lang_code)
+        if markup_texts is not None:
+            for button in markup_texts:
+                markup.add(types.InlineKeyboardButton(text=button['TEXT'], callback_data=button['CALLBACK_DATA']))
+        return markup
+
+    def get_quiz_start_markup(self, lang_code: str) -> types.InlineKeyboardMarkup:
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton(text=self.lang.get_page_text("QUIZ", "BUTTON_START", lang_code),
+                                              callback_data="quiz_start"))
+        return markup
+
+    def get_quiz_next_markup(self, lang_code: str) -> types.InlineKeyboardMarkup:
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton(text=self.lang.get_page_text('QUIZ', 'BUTTON_NEXT', lang_code),
+                                              callback_data='quiz_next_question'))
+        return markup
+
+    def get_quiz_finish_markup(self, lang_code: str) -> types.InlineKeyboardMarkup:
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton(text=self.lang.get_page_text('QUIZ', 'BUTTON_FINISH', lang_code),
+                                              callback_data='quiz_finish'))
         return markup

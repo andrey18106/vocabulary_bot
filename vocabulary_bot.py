@@ -16,7 +16,6 @@ import re
 from aiogram import Bot, Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.types import BotCommand
-from aiogram.utils.exceptions import Throttled
 
 # ===== Local imports =====
 
@@ -28,12 +27,14 @@ from callback_handlers import VocabularyBotCallbackHandler
 from lang_manager import LangManager
 from markups_manager import MarkupManager
 from antiflood import rate_limit, ThrottlingMiddleware
-from states.Dictionary import DictionaryAddNewWordState, DictionaryDeleteWordState
+from states.Dictionary import DictionaryAddNewWordState, DictionaryDeleteWordState, DictionaryQuizState, \
+    DictionarySearchWordState, DictionaryEditWordState
 
 
 class VocabularyBot:
     """Basic class for Vocabulary Bot necessary logics"""
 
+    USERS_FOR_RATING_LIMIT = 10
     commands = [
         BotCommand(command='/start', description='Start the bot'),
         BotCommand(command='/help', description='Welcome message'),
@@ -54,7 +55,8 @@ class VocabularyBot:
         self.analytics = BotAnalytics(self.db)
         self.admin = AdminManager(self.bot, self.db, self.lang, self.markup, self.dp, self.analytics)
 
-        self.callbacks = VocabularyBotCallbackHandler(self.db, self.lang, self.markup, self.analytics, self.dp)
+        self.callbacks = VocabularyBotCallbackHandler(self.db, self.lang, self.markup, self.analytics, self.dp,
+                                                      self.bot)
 
         self.__init_handlers()
 
@@ -122,7 +124,7 @@ class VocabularyBot:
             await message.answer(text=self.lang.get_page_text('DICTIONARY', 'TEXT', user_lang),
                                  reply_markup=self.markup.get_dictionary_markup(user_lang))
             await message.answer(text=self.lang.get_user_dict(message['from']['id'], user_lang),
-                                 reply_markup=self.markup.get_dict_pagination('dictionary')
+                                 reply_markup=self.markup.get_pagination_markup('dictionary')
                                  if (len(self.db.get_user_dict(message['from']['id'])) > 0) else None)
 
         # IF MAIN_MENU -> ACHIEVEMENTS COMMAND
@@ -143,7 +145,9 @@ class VocabularyBot:
         async def rating_command_handler(message: types.Message):
             """TODO: Rating page"""
             user_lang = self.lang.parse_user_lang(message['from']['id'])
-            await message.answer(text=self.lang.get_page_text("RATING", "NOT_AVAILABLE", user_lang))
+            await message.answer(text=self.lang.get_rating_page(message['from']['id'], user_lang)
+                                 if len(self.db.get_rating_list(10, 0)) >= self.USERS_FOR_RATING_LIMIT else
+                                 self.lang.get_page_text("RATING", "NOT_AVAILABLE", user_lang))
 
         # IF MAIN_MENU -> PROFILE COMMAND
         @self.dp.message_handler(
@@ -195,7 +199,6 @@ class VocabularyBot:
         async def new_word_command_handler(message: types.Message):
             """Handler for add new word command (➕ Add word)
             (in a future with selection the thematic vocabulary)
-            TODO: Handle a new word via FSM
             Default Dictionary Command Logics:
             -> Send a welcome message according to the action to enter the new word
             -> Set the FSM state to "waiting for a new word"
@@ -229,7 +232,8 @@ class VocabularyBot:
             async with state.proxy() as data:
                 data['translation'] = message.text
             await DictionaryAddNewWordState.next()
-            await message.answer(self.lang.get_page_text('ADD_WORD', 'CONFIRMATION', user_lang),
+            await message.answer(self.lang.get_page_text('ADD_WORD', 'CONFIRMATION', user_lang) +
+                                 f"\n\n{data['word']} - {data['translation']}",
                                  reply_markup=self.markup.get_confirmation_markup(user_lang))
 
         @self.dp.message_handler(state=DictionaryAddNewWordState.confirmation)
@@ -252,7 +256,7 @@ class VocabularyBot:
             await message.answer(text=self.lang.get_page_text('DICTIONARY', 'TEXT', user_lang),
                                  reply_markup=self.markup.get_dictionary_markup(user_lang))
             await message.answer(text=self.lang.get_user_dict(message['from']['id'], user_lang),
-                                 reply_markup=self.markup.get_dict_pagination('dictionary')
+                                 reply_markup=self.markup.get_pagination_markup('dictionary')
                                  if (len(self.db.get_user_dict(message['from']['id'])) > 0) else None)
 
         # IF MAIN_MENU -> DELETE WORD COMMAND
@@ -286,7 +290,7 @@ class VocabularyBot:
                 await message.answer(text=self.lang.get_page_text('DICTIONARY', 'TEXT', user_lang),
                                      reply_markup=self.markup.get_dictionary_markup(user_lang))
                 await message.answer(text=self.lang.get_user_dict(message['from']['id'], user_lang),
-                                     reply_markup=self.markup.get_dict_pagination('dictionary')
+                                     reply_markup=self.markup.get_pagination_markup('dictionary')
                                      if (len(self.db.get_user_dict(message['from']['id'])) > 0) else None)
 
         @self.dp.message_handler(state=DictionaryDeleteWordState.confirmation)
@@ -305,7 +309,7 @@ class VocabularyBot:
             await message.answer(text=self.lang.get_page_text('DICTIONARY', 'TEXT', user_lang),
                                  reply_markup=self.markup.get_dictionary_markup(user_lang))
             await message.answer(text=self.lang.get_user_dict(message['from']['id'], user_lang),
-                                 reply_markup=self.markup.get_dict_pagination('dictionary')
+                                 reply_markup=self.markup.get_pagination_markup('dictionary')
                                  if (len(self.db.get_user_dict(message['from']['id'])) > 0) else None)
 
         # IF MAIN_MENU -> EDIT WORD COMMAND
@@ -316,7 +320,20 @@ class VocabularyBot:
         async def edit_word_command_handler(message: types.Message):
             """TODO: Handler for edit word command (✏ Edit word)"""
             user_lang = self.lang.parse_user_lang(message['from']['id'])
-            await message.answer(text=self.lang.get_page_text('EDIT_WORD', 'IN_DEVELOPING', user_lang))
+            await DictionaryEditWordState.search_query.set()
+            await message.answer(text=self.lang.get_page_text('EDIT_WORD', 'WELCOME_TEXT', user_lang),
+                                 reply_markup=self.markup.get_cancel_markup())
+
+        @self.dp.message_handler(state=DictionaryEditWordState.search_query)
+        @self.analytics.fsm_metric
+        async def edit_word_state_search_query_handler(message: types.Message, state: FSMContext):
+            user_lang = self.lang.parse_user_lang(message['from']['id'])
+            async with state.proxy() as data:
+                data['search_query'] = message.text
+            query_result = self.db.search_user_word(message['from']['id'], data['search_query'])
+            if len(query_result) > 0:
+                await message.answer(self.lang.get_page_text('EDIT_WORD', 'WORD_FOUND', user_lang) + '\n\n'
+                                     + f'[{query_result[5]} - {query_result[6]}] {query_result[2]} - {query_result[3]}')
 
         # IF MAIN_MENU -> FIND WORD COMMAND
         @self.dp.message_handler(
@@ -324,9 +341,34 @@ class VocabularyBot:
                 message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[3])
         @self.analytics.default_metric
         async def find_word_command_handler(message: types.Message):
-            """TODO: Handler for edit word command (🔎 Find word)"""
+            """Handler for edit word command (🔎 Find word)"""
             user_lang = self.lang.parse_user_lang(message['from']['id'])
-            await message.answer(text=self.lang.get_page_text('FIND_WORD', 'IN_DEVELOPING', user_lang))
+            await DictionarySearchWordState.search_query.set()
+            await message.answer(text=self.lang.get_page_text('FIND_WORD', 'WELCOME_TEXT', user_lang),
+                                 reply_markup=self.markup.get_cancel_markup())
+
+        @self.dp.message_handler(state=DictionarySearchWordState.search_query)
+        @self.analytics.fsm_metric
+        async def search_word_state_search_query_handler(message: types.Message, state: FSMContext):
+            user_lang = self.lang.parse_user_lang(message['from']['id'])
+            async with state.proxy() as data:
+                data['search_query'] = message.text
+            query_result = self.db.search_user_word(message['from']['id'], data['search_query'])
+            if len(query_result) > 0:
+                await message.answer(self.lang.get_page_text('FIND_WORD', 'WORD_FOUND', user_lang) + '\n\n'
+                                     + str(query_result))
+                async with state.proxy() as data:
+                    data['result'] = query_result
+                await DictionarySearchWordState.next()
+            else:
+                await state.finish()
+                await message.answer(self.lang.get_page_text('FIND_WORD', 'NOT_FOUND', user_lang))
+
+        @self.dp.message_handler(state=DictionarySearchWordState.confirmation)
+        @self.analytics.fsm_metric
+        async def search_word_state_confirmation_handler(message: types.Message, state: FSMContext):
+            user_lang = self.lang.parse_user_lang(message['from']['id'])
+            ...
 
         # IF MAIN_MENU -> QUIZ COMMAND
         @self.dp.message_handler(
@@ -334,9 +376,10 @@ class VocabularyBot:
                 message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[4])
         @self.analytics.default_metric
         async def quiz_command_handler(message: types.Message):
-            """TODO: Handler for edit word command (📝 Quiz)"""
+            """Handler for edit word command (📝 Quiz)"""
             user_lang = self.lang.parse_user_lang(message['from']['id'])
-            await message.answer(text=self.lang.get_page_text('QUIZ', 'IN_DEVELOPING', user_lang))
+            await message.answer(text=self.lang.get_page_text('QUIZ', 'TEXT', user_lang),
+                                 reply_markup=self.markup.get_quiz_start_markup(user_lang))
 
         # IF MAIN_MENU -> STATISTICS COMMAND
         @self.dp.message_handler(
@@ -344,9 +387,15 @@ class VocabularyBot:
                 message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[5])
         @self.analytics.default_metric
         async def quiz_command_handler(message: types.Message):
-            """TODO: Handler for edit word command (📉 Statistics)"""
+            """Handler for edit word command (📉 Statistics)"""
             user_lang = self.lang.parse_user_lang(message['from']['id'])
-            await message.answer(text=self.lang.get_page_text('STATISTICS', 'IN_DEVELOPING', user_lang))
+            user_last_word_added = self.db.get_user_dict_last_word_date(message['from']['id'])
+            await message.answer(text=self.lang.get_user_dict_stats_page(message['from']['id'],
+                                                                         user_last_word_added.year,
+                                                                         user_last_word_added.month,
+                                                                         0, user_lang),
+                                 reply_markup=self.markup.get_pagination_markup('statistics'),
+                                 parse_mode="Markdown")
 
         @self.dp.message_handler(lambda message: message.text.startswith('/word_'))
         @self.analytics.default_metric
