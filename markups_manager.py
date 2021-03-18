@@ -81,7 +81,7 @@ class MarkupManager:
         return markup
 
     def get_pagination_markup(self, action: str) -> types.InlineKeyboardMarkup:
-        """TODO: Implement dict pagination"""
+        """TODO: Implement pagination"""
         pagination_markup = types.InlineKeyboardMarkup()
         pagination_markup.row(types.InlineKeyboardButton(text="⏮", callback_data=f'first_{action}'),
                               types.InlineKeyboardButton(text="⬅", callback_data=f'prev_{action}'),

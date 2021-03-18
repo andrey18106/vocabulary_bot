@@ -173,3 +173,14 @@ class LangManager:
             else:
                 result += f' `[{quiz_results[i]["selected_option"] == quiz_results[i]["correct_option"]}]`)\n'
         return result
+
+    def get_achievements_page(self, user_id: int, lang_code: str) -> str:
+        result = ''
+        user_achievements = self.db.get_user_achievements(user_id)
+        if len(user_achievements) > 0:
+            for achievement in user_achievements:
+                result += f'{achievement[0]} {achievement[1]} ({achievement[2]})'
+        return result
+
+    def paginate(self, data: list, items_per_page: int, current_page: int) -> str:
+        return [data[x:x+items_per_page] for x in range(0, len(data), 10)][current_page]

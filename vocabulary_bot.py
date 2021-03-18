@@ -136,6 +136,8 @@ class VocabularyBot:
             """TODO: Achievements page"""
             user_lang = self.lang.parse_user_lang(message['from']['id'])
             await message.answer(text=self.lang.get_page_text("ACHIEVEMENTS", "TEXT", user_lang))
+            await message.answer(text=self.lang.get_achievements_page(message['from']['id'], user_lang),
+                                 reply_markup=self.markup.get_pagination_markup('achievements'))
 
         # IF MAIN_MENU -> RATING COMMAND
         @self.dp.message_handler(
@@ -157,7 +159,7 @@ class VocabularyBot:
         @self.analytics.default_metric
         async def profile_command_handler(message: types.Message):
             """Handler for settings command (⚙ Profile)"""
-            user_lang = self.lang.parse_user_lang(message['from']['id'])
+            user_lang = self.lang.parse_user_lang(message['from'][' id'])
             await message.answer(text=self.lang.get_user_profile_page(message['from']['id'], user_lang),
                                  parse_mode='Markdown',
                                  reply_markup=self.markup.get_profile_referral_markup(user_lang))
@@ -217,7 +219,7 @@ class VocabularyBot:
         @self.analytics.fsm_metric
         async def new_word_state_word_handler(message: types.Message, state: FSMContext):
             user_lang = self.lang.parse_user_lang(message['from']['id'])
-            if re.match("^[A-Z]?[a-z]$", message.text):
+            if re.match("^[A-Z]?[a-z]*$", message.text) is None:
                 await message.answer(self.lang.get_page_text('ADD_WORD', 'NOT_VALID', user_lang))
                 return
             async with state.proxy() as data:

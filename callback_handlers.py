@@ -93,7 +93,7 @@ class VocabularyBotCallbackHandler:
         @self.dp.callback_query_handler(lambda query: query.data.startswith('news_setting_'))
         @self.analytics.callback_metric
         async def language_settings_callback_handler(query: types.CallbackQuery):
-            """TODO: Newsletters settings (add queries to the database)"""
+            """Newsletters settings"""
             user_lang = self.lang.parse_user_lang(query['from']['id'])
             selected_option = query['data'][13:]
             if selected_option == 'all':

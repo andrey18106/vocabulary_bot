@@ -49,7 +49,7 @@ class DbManager:
 
     def _database_created(self) -> bool:
         tables = ['users', 'words', 'metrics', 'analytics_log', 'permissions', 'admins', 'achievements',
-                  'stock_vocabulary']
+                  'achievements_log', 'stock_vocabulary']
         query = '''SELECT name FROM sqlite_master WHERE type='table' AND name=?;'''
         result = True
         for table_name in tables:
@@ -101,7 +101,12 @@ class DbManager:
                                 achievement_points INT NOT NULL,
                                 achievement_threshold INT NOT NULL
                             );'''
-
+        achievements_log_table = '''CREATE TABLE achievements_log (
+                                    action_id     INTEGER  PRIMARY KEY AUTOINCREMENT,
+                                    achievement   INTEGER  REFERENCES achievements (achievement_id),
+                                    user          INTEGER  REFERENCES users (user_id),
+                                    date_achieved DATETIME
+                                );'''
         stock_vocabulary_table = '''CREATE TABLE stock_vocabulary (
                                     word_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                                     word_string TEXT NOT NULL,
@@ -117,6 +122,7 @@ class DbManager:
             self.conn.execute(permissions_table)
             self.conn.execute(admins_table)
             self.conn.execute(achievements_table)
+            self.conn.execute(achievements_log_table)
             self.conn.execute(stock_vocabulary_table)
             self.conn.commit()
             logging.getLogger(type(self).__name__).info('Database structure successfully created')
@@ -307,7 +313,6 @@ class DbManager:
         return result
 
     def get_user_dictionary_stats(self, user_id: int) -> dict:
-        """TODO: Implement dictionary stats"""
         dates = dict()
         dates['years'] = dict()
         user_dict = self.get_user_dict(user_id)
@@ -429,3 +434,8 @@ class DbManager:
         query = 'SELECT * FROM words WHERE user_id=? AND word_string=?'
         result = self._execute_query(query, user_id, word_string).fetchall()
         return result[0] if len(result) > 0 else []
+
+    def get_user_achievements(self, user_id: int) -> list:
+        """TODO: Change achievements database structure"""
+        query = 'SELECT * FROM achievements WHERE user_id=?'
+        return self._execute_query(query, user_id).fetchall()
