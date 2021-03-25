@@ -80,7 +80,8 @@ class MarkupManager:
             types.reply_keyboard.KeyboardButton(text=self.lang.get_page_text("BACK_MAIN_MENU", "BUTTON", lang_code)))
         return markup
 
-    def get_pagination_markup(self, action: str) -> types.InlineKeyboardMarkup:
+    @staticmethod
+    def get_pagination_markup(action: str) -> types.InlineKeyboardMarkup:
         """TODO: Implement pagination"""
         pagination_markup = types.InlineKeyboardMarkup()
         pagination_markup.row(types.InlineKeyboardButton(text="⏮", callback_data=f'first_{action}'),
@@ -97,6 +98,7 @@ class MarkupManager:
         return markup
 
     def get_admin_database_markup(self, lang_code: str) -> types.InlineKeyboardMarkup:
+        """TODO: Create Admin Database Manager markup"""
         markup = types.InlineKeyboardMarkup()
         return markup
 

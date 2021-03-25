@@ -15,7 +15,7 @@ from aiogram.utils import exceptions
 # ===== Local imports =====
 
 from analytics import BotAnalytics
-from antiflood import rate_limit
+from antiflood import VocabularyBotAntifloodMiddleware
 from db_manager import DbManager
 from lang_manager import LangManager
 from markups_manager import MarkupManager
@@ -40,7 +40,7 @@ class AdminManager:
         """Register admin command handlers"""
 
         @self.dp.message_handler(commands=['admin'])
-        @rate_limit(1, 'admin')
+        @VocabularyBotAntifloodMiddleware.rate_limit(1, 'admin')
         @self.analytics.default_metric
         async def admin_command_message_handler(message: types.Message):
             if self.db.is_admin(message['from']['id']):
@@ -50,7 +50,7 @@ class AdminManager:
                                          self.get_admin_permissions(message['from']['id']), user_lang))
 
         @self.dp.message_handler(commands=['default'])
-        @rate_limit(1, 'default')
+        @VocabularyBotAntifloodMiddleware.rate_limit(1, 'default')
         @self.analytics.default_metric
         async def default_command_message_handler(message: types.Message):
             if self.db.is_admin(message['from']['id']):
@@ -59,7 +59,7 @@ class AdminManager:
                                      reply_markup=self.markup.get_main_menu_markup(user_lang))
 
         @self.dp.message_handler(commands=['ping'])
-        @rate_limit(1, 'ping')
+        @VocabularyBotAntifloodMiddleware.rate_limit(1, 'ping')
         @self.analytics.default_metric
         async def ping_command_message_handler(message: types.Message):
             if self.db.is_admin(message['from']['id']):

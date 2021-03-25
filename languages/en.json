@@ -175,7 +175,9 @@
     "TEXT": "Your vocabulary achievements"
   },
   "THROTTLING": {
-      "LANG_SETTINGS": "The interface language can be changed only once per minute."
+    "LANG_SETTINGS": "The interface language can be changed only once per minute.",
+    "CANCELED": "Canceled",
+    "TOO_MANY_REQUESTS": "Too many requests"
   },
   "QUIZ": {
     "TEXT": "Quiz based on your dictionary. From it randomly choosing 10 words with random options, where only 1 is correct.",

@@ -70,8 +70,7 @@ class LangManager:
         else:
             return self.localizations[DEFAULT_LANG][key]['BUTTONS']
 
-    def get_user_dict(self, user_id: int, lang_code: str) -> str:
-        user_dict = self.db.get_user_dict(user_id)
+    def get_user_dict(self, user_dict: list, lang_code: str) -> str:
         result_string = ''
         if len(user_dict) > 0:
             for word in user_dict:
@@ -182,5 +181,6 @@ class LangManager:
                 result += f'{achievement[0]} {achievement[1]} ({achievement[2]})'
         return result
 
-    def paginate(self, data: list, items_per_page: int, current_page: int) -> str:
-        return [data[x:x+items_per_page] for x in range(0, len(data), 10)][current_page]
+    @staticmethod
+    def paginated(data: list, items_per_page: int, page_number: int) -> list:
+        return [data[x:x+items_per_page] for x in range(0, len(data), 10)][page_number]

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # TODO: Add user restrictions according to API limits
-# TODO: (new words per day, total vocabulary capacity, available number of quizzes, number of instant translations)
+#  (new words per day, total vocabulary capacity, available number of quizzes, number of instant translations)
 
 # ===== Default imports =====
 
@@ -26,6 +26,7 @@ class DbManager:
 
     def __init__(self, path_to_db: str):
         self.path_to_db = path_to_db
+        self.path_to_sql_dump = str(path_to_db).replace('db', 'sql')
 
     def create_connection(self):
         try:
@@ -57,74 +58,9 @@ class DbManager:
         return result
 
     def _init_database(self) -> None:
-        users_table = '''CREATE TABLE users (
-                            user_id INT PRIMARY KEY NOT NULL, 
-                            user_nickname STRING, 
-                            user_firstname STRING, 
-                            user_lastname STRING, 
-                            lang TEXT,
-                            date_added DATETIME,
-                            referrals INT DEFAULT (0),
-                            referrer INT,
-                            mailings INT DEFAULT (2) 
-                        );'''
-        words_table = '''CREATE TABLE words (
-                        word_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                        user_id INTEGER REFERENCES users (user_id) NOT NULL,
-                        word_string TEXT NOT NULL,
-                        word_translation TEXT,
-                        date_added DATETIME NOT NULL,
-                        from_lang TEXT,
-                        to_lang TEXT
-                    );'''
-        metrics_table = '''CREATE TABLE metrics (
-                            metric_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
-                            metric_name TEXT NOT NULL
-                        );'''
-        analytics_log_table = '''CREATE TABLE analytics_log (
-                                    log_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
-                                    metric INT NOT NULL REFERENCES metrics (metric_id), 
-                                    count INT NOT NULL DEFAULT (1), user_id INT NOT NULL
-                                );'''
-        permissions_table = '''CREATE TABLE permissions (
-                                permission_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
-                                permission_name TEXT NOT NULL
-                            );'''
-        admins_table = '''CREATE TABLE admins (
-                                admin_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
-                                user_id INT NOT NULL, 
-                                permission_level INTEGER NOT NULL REFERENCES permissions (permission_id)
-                            );'''
-        achievements_table = '''CREATE TABLE achievements (
-                                achievement_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                                achievement_name TEXT NOT NULL,
-                                achievement_points INT NOT NULL,
-                                achievement_threshold INT NOT NULL
-                            );'''
-        achievements_log_table = '''CREATE TABLE achievements_log (
-                                    action_id     INTEGER  PRIMARY KEY AUTOINCREMENT,
-                                    achievement   INTEGER  REFERENCES achievements (achievement_id),
-                                    user          INTEGER  REFERENCES users (user_id),
-                                    date_achieved DATETIME
-                                );'''
-        stock_vocabulary_table = '''CREATE TABLE stock_vocabulary (
-                                    word_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                                    word_string TEXT NOT NULL,
-                                    word_translation TEXT,
-                                    word_transcription TEXT,
-                                    date_added DATETIME NOT NULL
-                                );'''
         try:
-            self.conn.execute(users_table)
-            self.conn.execute(words_table)
-            self.conn.execute(metrics_table)
-            self.conn.execute(analytics_log_table)
-            self.conn.execute(permissions_table)
-            self.conn.execute(admins_table)
-            self.conn.execute(achievements_table)
-            self.conn.execute(achievements_log_table)
-            self.conn.execute(stock_vocabulary_table)
-            self.conn.commit()
+            with open(self.path_to_sql_dump, 'r', encoding='windows-1251') as sql_file:
+                self.conn.executescript(sql_file.read())
             logging.getLogger(type(self).__name__).info('Database structure successfully created')
         except sqlite3.Error as error:
             logging.getLogger(type(self).__name__).error(f'Error while creating database.\n{error}')
@@ -291,10 +227,6 @@ class DbManager:
         query = 'DELETE FROM words WHERE word_id=? AND user_id=?'
         self._execute_query(query, word_id, user_id)
         self.conn.commit()
-
-    def word_is_users(self, word_id: int, user_id: int) -> bool:
-        query = 'SELECT word_id FROM words WHERE word_id=? AND user_id=?'
-        return len(self._execute_query(query, word_id, user_id).fetchall()) > 0
 
     def get_broadcast_users(self, mailings: int = 2) -> list:
         query = 'SELECT user_id FROM users WHERE mailings=?'

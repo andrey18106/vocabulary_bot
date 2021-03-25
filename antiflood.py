@@ -12,30 +12,34 @@ from aiogram.dispatcher.handler import CancelHandler, current_handler
 from aiogram.dispatcher.middlewares import BaseMiddleware
 from aiogram.utils.exceptions import Throttled
 
+# ===== Local imports =====
 
-def rate_limit(limit: int, key=None):
-    """
-    Decorator for configuring rate limit and key in different functions.
-
-    :param limit:
-    :param key:
-    :return:
-    """
-    def decorator(func):
-        setattr(func, 'throttling_rate_limit', limit)
-        if key:
-            setattr(func, 'throttling_key', key)
-        return func
-    return decorator
+from lang_manager import LangManager
 
 
-class ThrottlingMiddleware(BaseMiddleware):
-    """Simple middleware"""
+class VocabularyBotAntifloodMiddleware(BaseMiddleware):
 
-    def __init__(self, limit=2, key_prefix='antiflood_'):
+    def __init__(self, lang_manager: LangManager, limit=2, key_prefix='antiflood_'):
+        self.lang = lang_manager
         self.rate_limit = limit
         self.prefix = key_prefix
-        super(ThrottlingMiddleware, self).__init__()
+        super(VocabularyBotAntifloodMiddleware, self).__init__()
+
+    @staticmethod
+    def rate_limit(limit: int, key=None):
+        """
+        Decorator for configuring rate limit and key in different functions.
+
+        :param limit:
+        :param key:
+        :return:
+        """
+        def decorator(func):
+            setattr(func, 'throttling_rate_limit', limit)
+            if key:
+                setattr(func, 'throttling_key', key)
+            return func
+        return decorator
 
     async def on_process_message(self, message: types.Message, data: dict):
         """
@@ -88,7 +92,8 @@ class ThrottlingMiddleware(BaseMiddleware):
 
         # Prevent flooding
         if throttled.exceeded_count <= 2:
-            await message.reply('Too many requests! ')
+            user_lang = self.lang.parse_user_lang(message['from']['id'])
+            await message.reply(self.lang.get_page_text('THROTTLING', 'TOO_MANY_REQUESTS', user_lang))
 
         # Sleep.
         await asyncio.sleep(delta)

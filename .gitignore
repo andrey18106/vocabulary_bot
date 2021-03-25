@@ -4,3 +4,6 @@ __pycache__
 environment
 .env
 database.db
+database.sql
+.scannerwork
+sonar-project.properties

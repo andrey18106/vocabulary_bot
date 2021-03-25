@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-# TODO: The daily (or weakly) personal quizzes via mass messaging mechanism for users (+ appropriate user settings)
-# TODO: After implementing basic functions (Add, Delete, Edit, Find, Stats ...) - test spell checking ready solutions
 # TODO: Create reusable paginator for large pages
 #  (Dictionary, Statistics, Rating, Achievements, Analytics, Users, Settings)
 
@@ -26,14 +24,15 @@ from db_manager import DbManager
 from callback_handlers import VocabularyBotCallbackHandler
 from lang_manager import LangManager
 from markups_manager import MarkupManager
-from antiflood import rate_limit, ThrottlingMiddleware
-from states.Dictionary import DictionaryAddNewWordState, DictionaryDeleteWordState, DictionaryQuizState, \
-    DictionarySearchWordState, DictionaryEditWordState
+from antiflood import VocabularyBotAntifloodMiddleware
+from states.Dictionary import DictionaryAddNewWordState, DictionaryDeleteWordState, DictionarySearchWordState, \
+    DictionaryEditWordState
 
 
 class VocabularyBot:
     """Basic class for Vocabulary Bot necessary logics"""
 
+    EN_PHRASE_REGEX = "^([A-Z]?[a-z]*'?[a-z]*)(,? ?,?([A-z]|[a-z]?([a-z]*)'?[a-z]*))*$"
     USERS_FOR_RATING_LIMIT = 10
     commands = [
         BotCommand(command='/start', description='Start the bot'),
@@ -46,7 +45,6 @@ class VocabularyBot:
     def __init__(self, bot: Bot, dispatcher: Dispatcher):
         self.bot = bot
         self.dp = dispatcher
-        self.dp.middleware.setup(ThrottlingMiddleware())
 
         self.db = DbManager(config.PATH_TO_DB)
         self.db.create_connection()
@@ -54,6 +52,8 @@ class VocabularyBot:
         self.markup = MarkupManager(self.lang)
         self.analytics = BotAnalytics(self.db)
         self.admin = AdminManager(self.bot, self.db, self.lang, self.markup, self.dp, self.analytics)
+
+        self.dp.middleware.setup(VocabularyBotAntifloodMiddleware(self.lang))
 
         self.callbacks = VocabularyBotCallbackHandler(self.db, self.lang, self.markup, self.analytics, self.dp,
                                                       self.bot)
@@ -64,7 +64,7 @@ class VocabularyBot:
         """Initializing basic Vocabulary Bot message handlers"""
 
         @self.dp.message_handler(commands=['start'])
-        @rate_limit(5, 'start')
+        @VocabularyBotAntifloodMiddleware.rate_limit(5, 'start')
         @self.analytics.default_metric
         async def welcome_message_handler(message: types.Message):
 
@@ -77,7 +77,7 @@ class VocabularyBot:
                 user_lang = config.DEFAULT_LANG
 
                 # HANDLE REFERRAL
-                if message.get_args() is not None and re.match('referral_[0-9]*', message.get_args()):
+                if message.get_args() is not None and re.match('^referral_[0-9]*$', message.get_args()):
                     referrer_id = int(message.get_args()[9:])
                     # IF REFERRER EXISTS AND REFERRAL USER IS NOT EXISTS IN THE DATABASE
                     if self.db.is_user_exists(referrer_id) and message['from']['id'] != referrer_id:
@@ -87,7 +87,7 @@ class VocabularyBot:
                                  reply_markup=self.markup.get_main_menu_markup(user_lang))
 
         @self.dp.message_handler(commands=['help'])
-        @rate_limit(3, 'help')
+        @VocabularyBotAntifloodMiddleware.rate_limit(3, 'help')
         @self.analytics.default_metric
         async def help_message_handler(message: types.Message):
             user_lang = self.lang.parse_user_lang(message['from']['id'])
@@ -101,7 +101,8 @@ class VocabularyBot:
             user_lang = self.lang.parse_user_lang(message['from']['id'])
             logging.getLogger(type(self).__name__).info('Cancelling state %r', current_state)
             await state.finish()
-            await message.reply('Cancelled.', reply_markup=self.markup.get_main_menu_markup(user_lang))
+            await message.reply(self.lang.get_page_text("THROTTLING", "CANCELED", user_lang),
+                                reply_markup=self.markup.get_main_menu_markup(user_lang))
 
         @self.dp.message_handler(
             lambda message: message.text == self.lang.get_page_text('BACK_MAIN_MENU', 'BUTTON', self.db.get_user_lang(
@@ -113,6 +114,18 @@ class VocabularyBot:
             await message.answer(text=self.lang.get_page_text('BACK_MAIN_MENU', 'TEXT', user_lang),
                                  reply_markup=self.markup.get_main_menu_markup(user_lang))
 
+        async def _send_dictionary_page(message: types.Message, user_lang: str):
+            user_dict = self.db.get_user_dict(message['from']['id'])
+            if len(user_dict) > 10:
+                user_dict_page = self.lang.get_user_dict(self.lang.paginated(user_dict, 10, 0), user_lang)
+                reply_markup = self.markup.get_pagination_markup('dictionary')
+            else:
+                user_dict_page = self.lang.get_user_dict(user_dict, user_lang)
+                reply_markup = None
+            await message.answer(text=self.lang.get_page_text('DICTIONARY', 'TEXT', user_lang),
+                                 reply_markup=self.markup.get_dictionary_markup(user_lang))
+            await message.answer(text=user_dict_page, reply_markup=reply_markup)
+
         # IF MAIN_MENU -> DICTIONARY COMMAND
         @self.dp.message_handler(
             lambda message: message.text == self.lang.get_markup_localization("MAIN_MENU", self.db.get_user_lang(
@@ -121,11 +134,7 @@ class VocabularyBot:
         async def dictionary_command_handler(message: types.Message):
             """Handler for dictionary command (📃 Dictionary)"""
             user_lang = self.lang.parse_user_lang(message['from']['id'])
-            await message.answer(text=self.lang.get_page_text('DICTIONARY', 'TEXT', user_lang),
-                                 reply_markup=self.markup.get_dictionary_markup(user_lang))
-            await message.answer(text=self.lang.get_user_dict(message['from']['id'], user_lang),
-                                 reply_markup=self.markup.get_pagination_markup('dictionary')
-                                 if (len(self.db.get_user_dict(message['from']['id'])) > 0) else None)
+            await _send_dictionary_page(message, user_lang)
 
         # IF MAIN_MENU -> ACHIEVEMENTS COMMAND
         @self.dp.message_handler(
@@ -147,9 +156,10 @@ class VocabularyBot:
         async def rating_command_handler(message: types.Message):
             """TODO: Rating page"""
             user_lang = self.lang.parse_user_lang(message['from']['id'])
-            await message.answer(text=self.lang.get_rating_page(message['from']['id'], user_lang)
-                                 if len(self.db.get_rating_list(10, 0)) >= self.USERS_FOR_RATING_LIMIT else
-                                 self.lang.get_page_text("RATING", "NOT_AVAILABLE", user_lang))
+            if len(self.db.get_rating_list(10, 0)) >= self.USERS_FOR_RATING_LIMIT:
+                await message.answer(text=self.lang.get_rating_page(message['from']['id'], user_lang))
+            else:
+                await message.answer(text=self.lang.get_page_text("RATING", "NOT_AVAILABLE", user_lang))
 
         # IF MAIN_MENU -> PROFILE COMMAND
         @self.dp.message_handler(
@@ -159,7 +169,7 @@ class VocabularyBot:
         @self.analytics.default_metric
         async def profile_command_handler(message: types.Message):
             """Handler for settings command (⚙ Profile)"""
-            user_lang = self.lang.parse_user_lang(message['from'][' id'])
+            user_lang = self.lang.parse_user_lang(message['from']['id'])
             await message.answer(text=self.lang.get_user_profile_page(message['from']['id'], user_lang),
                                  parse_mode='Markdown',
                                  reply_markup=self.markup.get_profile_referral_markup(user_lang))
@@ -219,7 +229,7 @@ class VocabularyBot:
         @self.analytics.fsm_metric
         async def new_word_state_word_handler(message: types.Message, state: FSMContext):
             user_lang = self.lang.parse_user_lang(message['from']['id'])
-            if re.match("^[A-Z]?[a-z]*$", message.text) is None:
+            if re.match(self.EN_PHRASE_REGEX, message.text) is None:
                 await message.answer(self.lang.get_page_text('ADD_WORD', 'NOT_VALID', user_lang))
                 return
             async with state.proxy() as data:
@@ -255,11 +265,7 @@ class VocabularyBot:
                                      reply_markup=self.markup.get_dictionary_markup(user_lang))
             await state.finish()
             await asyncio.sleep(1)
-            await message.answer(text=self.lang.get_page_text('DICTIONARY', 'TEXT', user_lang),
-                                 reply_markup=self.markup.get_dictionary_markup(user_lang))
-            await message.answer(text=self.lang.get_user_dict(message['from']['id'], user_lang),
-                                 reply_markup=self.markup.get_pagination_markup('dictionary')
-                                 if (len(self.db.get_user_dict(message['from']['id'])) > 0) else None)
+            await _send_dictionary_page(message, user_lang)
 
         # IF MAIN_MENU -> DELETE WORD COMMAND
         @self.dp.message_handler(
@@ -267,7 +273,7 @@ class VocabularyBot:
                 message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[1])
         @self.analytics.default_metric
         async def delete_word_command_handler(message: types.Message):
-            """TODO: Handler for delete word command (➖ Delete word)"""
+            """Handler for delete word command (➖ Delete word)"""
             user_lang = self.lang.parse_user_lang(message['from']['id'])
             await DictionaryDeleteWordState.search_query.set()
             await message.answer(text=self.lang.get_page_text('DELETE_WORD', 'WELCOME_TEXT', user_lang),
@@ -289,11 +295,7 @@ class VocabularyBot:
             else:
                 await state.finish()
                 await message.answer(self.lang.get_page_text('DELETE_WORD', 'NOT_FOUND', user_lang))
-                await message.answer(text=self.lang.get_page_text('DICTIONARY', 'TEXT', user_lang),
-                                     reply_markup=self.markup.get_dictionary_markup(user_lang))
-                await message.answer(text=self.lang.get_user_dict(message['from']['id'], user_lang),
-                                     reply_markup=self.markup.get_pagination_markup('dictionary')
-                                     if (len(self.db.get_user_dict(message['from']['id'])) > 0) else None)
+                await _send_dictionary_page(message, user_lang)
 
         @self.dp.message_handler(state=DictionaryDeleteWordState.confirmation)
         @self.analytics.fsm_metric
@@ -308,11 +310,7 @@ class VocabularyBot:
                 await message.answer(self.lang.get_page_text('DELETE_WORD', 'CANCELLED', user_lang))
             await state.finish()
             await asyncio.sleep(1)
-            await message.answer(text=self.lang.get_page_text('DICTIONARY', 'TEXT', user_lang),
-                                 reply_markup=self.markup.get_dictionary_markup(user_lang))
-            await message.answer(text=self.lang.get_user_dict(message['from']['id'], user_lang),
-                                 reply_markup=self.markup.get_pagination_markup('dictionary')
-                                 if (len(self.db.get_user_dict(message['from']['id'])) > 0) else None)
+            await _send_dictionary_page(message, user_lang)
 
         # IF MAIN_MENU -> EDIT WORD COMMAND
         @self.dp.message_handler(
@@ -404,11 +402,11 @@ class VocabularyBot:
         async def word_by_id_command_handler(message: types.Message):
             word_id = int(message.text[6:])
             user_lang = self.lang.parse_user_lang(message['from']['id'])
-            if self.db.word_is_users(word_id, message['from']['id']):
+            if self.db.word_in_user_dict(word_id, message['from']['id']):
                 await message.answer(text=self.lang.get_word_info(word_id, message['from']['id'], user_lang))
 
         @self.dp.message_handler()
-        @rate_limit(5, 'echo')
+        @VocabularyBotAntifloodMiddleware.rate_limit(5, 'echo')
         @self.analytics.default_metric
         async def echo_message_handler(message: types.Message):
             """Default message handler for unrecognizable messages"""

@@ -156,6 +156,7 @@ class VocabularyBotCallbackHandler:
             elif action == 'schedule_list':
                 await query.answer()
 
+        # QUIZ CALLBACKS
         @self.dp.callback_query_handler(lambda query: query.data == 'quiz_start')
         @self.analytics.callback_fsm_metric
         async def quiz_start_callback_handler(query: types.CallbackQuery, state: FSMContext):
@@ -168,9 +169,10 @@ class VocabularyBotCallbackHandler:
                 data['quiz_results'] = []
                 data['quiz_data'] = quiz_data
                 data['index'] = 1
+                question = f"{data['index']}/{len(data['quiz_data'])} " + \
+                           self.lang.get_page_text('QUIZ', 'QUESTION', user_lang).format(quiz_data[0]['word'])
                 await self.bot.send_poll(chat_id=query['from']['id'],
-                                         question=self.lang.get_page_text('QUIZ', 'QUESTION', user_lang).format(
-                                             quiz_data[0]['word']),
+                                         question=question,
                                          options=quiz_data[0]['options'],
                                          correct_option_id=quiz_data[0]['options'].index(quiz_data[0]['answer']),
                                          type='quiz',
@@ -196,11 +198,14 @@ class VocabularyBotCallbackHandler:
                     data['quiz_results'].append(quiz_result)
                     if curr_q_index < len(data['quiz_data']) - 1:
                         data['index'] = curr_q_index + 1
+                        question = f"{data['index']}/{len(data['quiz_data'])} "
                     else:
+                        question = f"{len(data['quiz_data'])}/{len(data['quiz_data'])} "
                         await DictionaryQuizState.finish.set()
+                    question += self.lang.get_page_text('QUIZ', 'QUESTION', user_lang).format(
+                        data['quiz_data'][curr_q_index]['word'])
                     await self.bot.send_poll(chat_id=query['from']['id'],
-                                             question=self.lang.get_page_text('QUIZ', 'QUESTION', user_lang).format(
-                                                 data['quiz_data'][curr_q_index]['word']),
+                                             question=question,
                                              options=data['quiz_data'][curr_q_index]['options'],
                                              correct_option_id=data['quiz_data'][curr_q_index]['options'].index(
                                                  data['quiz_data'][curr_q_index]['answer']),
