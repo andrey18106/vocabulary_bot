@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 
-# TODO: Add user restrictions according to API limits
-#  (new words per day, total vocabulary capacity, available number of quizzes, number of instant translations)
-
 # ===== Default imports =====
 
 from config import DEFAULT_LANG
@@ -36,8 +33,6 @@ class DbManager:
             logging.getLogger(type(self).__name__).info(
                 f' SQLite {sqlite3.version} database successfully loaded '
                 f'[size: {round(os.path.getsize(self.path_to_db) / 1000)} KB]')
-            # self.__translate_stock_vocabulary(pack_size=980, offset=74)
-            # self.__transcribe_stock_vocabulary(pack_size=1000, offset=2000)
         except sqlite3.Error as error:
             logging.getLogger(type(self).__name__).error(f' SQLite3 Connection Error ({error})')
 
@@ -59,7 +54,7 @@ class DbManager:
 
     def _init_database(self) -> None:
         try:
-            with open(self.path_to_sql_dump, 'r', encoding='windows-1251') as sql_file:
+            with open(self.path_to_sql_dump, 'r', encoding='utf-8') as sql_file:
                 self.conn.executescript(sql_file.read())
             logging.getLogger(type(self).__name__).info('Database structure successfully created')
         except sqlite3.Error as error:
@@ -159,7 +154,11 @@ class DbManager:
 
     def get_permissions_list(self) -> list:
         query = 'SELECT * FROM permissions'
-        return self._execute_query(query).fetchall()[0]
+        return self._execute_query(query).fetchall()
+
+    def get_admin_permission_level(self, user_id: int) -> int:
+        query = 'SELECT permission_level FROM admins WHERE user_id=?'
+        return self._execute_query(query, user_id).fetchall()[0][0]
 
     def get_user_dict(self, user_id: int) -> list:
         query = '''SELECT word_id, word_string, word_translation, from_lang, to_lang, date_added

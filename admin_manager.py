@@ -125,8 +125,15 @@ class AdminManager:
                                                                                                  'id']))[2])
         @self.analytics.default_metric
         async def admin_analytics_command_handler(message: types.Message):
-            user_lang = self.lang.parse_user_lang(message['from']['id'])
-            await message.answer(text=self.lang.get_admin_statistics_page(message['from']['id'], user_lang))
+            if self.db.is_admin(message['from']['id']):
+                user_lang = self.lang.parse_user_lang(message['from']['id'])
+                statistics = self.db.get_admin_statistics()
+                reply_markup = None
+                if len(statistics) > 10:
+                    statistics = self.lang.paginated(statistics, self.lang.PAGINATION_PAGE_SIZE, 0)
+                    reply_markup = self.markup.get_pagination_markup('database_manager')
+                await message.answer(text=self.lang.get_admin_statistics_page(statistics, user_lang),
+                                     reply_markup=reply_markup)
 
         # IF ADMIN PANEL -> DATABASE
         @self.dp.message_handler(lambda message: message.text == self.lang.get_page_text('ADMIN', 'BUTTONS',
@@ -139,12 +146,13 @@ class AdminManager:
             await message.answer(text=self.lang.get_database_page(user_lang),
                                  reply_markup=self.markup.get_admin_database_markup(user_lang))
 
-    def get_admin_permissions(self, user_id: int) -> list:
+    def get_admin_permissions(self, user_id: int) -> tuple:
         """TODO: Implement admin permissions
             1 Administrator: All permissions (all functions, statistics, mailings, vocabularies, admins)
             2 Moderator: Vocabulary permission (can manage vocabulary, mailings)
             3 Teacher: Vocabulary permission, Referral system for students"""
-        return self.permissions
+        admin_permission_level = self.db.get_admin_permission_level(user_id) - 1
+        return self.permissions[admin_permission_level]
 
     async def __send_mailing(self, user_id: int, text: str, disable_notification: bool = False) -> bool:
         """Safe messages sender"""

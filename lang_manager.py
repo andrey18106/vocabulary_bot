@@ -10,14 +10,13 @@ import os
 # ===== Local imports =====
 
 from config import ROOT_DIR, DEFAULT_LANG
-
-# ===== Local imports =====
-
 from db_manager import DbManager
 
 
 class LangManager:
     """Class for working with bot localization and other text outputs"""
+
+    PAGINATION_PAGE_SIZE = 10
 
     def __init__(self, path_to_translations: str, db_manager: DbManager):
         self.path_to_translations = path_to_translations
@@ -57,6 +56,12 @@ class LangManager:
         else:
             return self.localizations[DEFAULT_LANG][key]['BUTTONS']
 
+    def get_admin_markup_localization(self, permissions: tuple, lang_code: str) -> list:
+        if lang_code in self.localizations and 'PERMISSIONS' in self.localizations[lang_code]['ADMIN']:
+            return self.localizations[lang_code]['ADMIN']['PERMISSIONS'][permissions[0] - 1]['BUTTONS']
+        else:
+            return self.localizations[DEFAULT_LANG]['ADMIN']['PERMISSIONS'][permissions[0] - 1]['BUTTONS']
+
     def get_page_text(self, key: str, value: str, lang_code: str) -> str:
         if lang_code in self.localizations and key in self.localizations[lang_code]:
             return self.localizations[lang_code][key][value]
@@ -89,13 +94,11 @@ class LangManager:
             word_info_str = self.get_page_text('DICTIONARY', 'NOT_FOUND', user_lang)
         return word_info_str
 
-    def get_admin_statistics_page(self, user_id: int, lang_code: str) -> str:
-        if self.db.is_admin(user_id):
-            statistics = self.db.get_admin_statistics()
-            statistics_string = self.get_page_text('ADMIN', 'STATISTICS', lang_code) + ':\n\n'
-            for stat in statistics:
-                statistics_string += f'{stat[2]} [{stat[1]}]\n'
-            return statistics_string
+    def get_admin_statistics_page(self, statistics: list, lang_code: str) -> str:
+        statistics_string = self.get_page_text('ADMIN', 'STATISTICS', lang_code) + ':\n\n'
+        for stat in statistics:
+            statistics_string += f'{stat[2]} [{stat[1]}]\n'
+        return statistics_string
 
     def get_admin_users_page(self, lang_code: str) -> str:
         users_list = self.db.get_users_list()
@@ -134,9 +137,8 @@ class LangManager:
         user_referral_link = 'https://t.me/vocabularies_bot?start=referral_' + str(user_id)
         return self.get_page_text("PROFILE", "REFERRAL_LINK_TEXT", lang_code) + "\n\n" + user_referral_link
 
-    def get_user_dict_stats_page(self, user_id: int, year: int, month: int, month_page: int, lang_code: str) -> str:
+    def get_user_dict_stats_page(self, stats: dict, year: int, month: int, month_page: int, lang_code: str) -> str:
         """TODO: Multiple language output"""
-        stats = self.db.get_user_dictionary_stats(user_id)
         result = f'Statistics of adding words (page {month_page + 1} of {stats["total_pages"]}):\n\n'
         result += f'*{year}* year:\n\n'
         result += f'   *{calendar.month_name[int(month)]}*:\n\n'

@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 
-# TODO: Create reusable paginator for large pages
-#  (Dictionary, Statistics, Rating, Achievements, Analytics, Users, Settings)
-
 # ===== Default imports =====
 
 import asyncio
@@ -14,6 +11,9 @@ import re
 from aiogram import Bot, Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.types import BotCommand
+from aiogram.utils import markdown
+import requests
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 # ===== Local imports =====
 
@@ -25,8 +25,9 @@ from callback_handlers import VocabularyBotCallbackHandler
 from lang_manager import LangManager
 from markups_manager import MarkupManager
 from antiflood import VocabularyBotAntifloodMiddleware
-from states.Dictionary import DictionaryAddNewWordState, DictionaryDeleteWordState, DictionarySearchWordState, \
-    DictionaryEditWordState
+from states.Dictionary import DictionaryState, DictionaryAddNewWordState, DictionaryDeleteWordState, \
+    DictionarySearchWordState, DictionaryEditWordState
+import pagination
 
 
 class VocabularyBot:
@@ -39,6 +40,7 @@ class VocabularyBot:
         BotCommand(command='/help', description='Welcome message'),
         BotCommand(command='/settings', description='Bot settings'),
         BotCommand(command='/cancel', description='Cancel command executing'),
+        BotCommand(command='/quote', description='Quote of the day'),
         BotCommand(command='/ping', description='Check the latency')
     ]
 
@@ -62,6 +64,8 @@ class VocabularyBot:
 
     def __init_handlers(self):
         """Initializing basic Vocabulary Bot message handlers"""
+
+        requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
         @self.dp.message_handler(commands=['start'])
         @VocabularyBotAntifloodMiddleware.rate_limit(5, 'start')
@@ -104,42 +108,60 @@ class VocabularyBot:
             await message.reply(self.lang.get_page_text("THROTTLING", "CANCELED", user_lang),
                                 reply_markup=self.markup.get_main_menu_markup(user_lang))
 
+        @self.dp.message_handler(state="*", commands=['quote'])
+        @VocabularyBotAntifloodMiddleware.rate_limit(5, 'quote')
+        @self.analytics.default_metric
+        async def quote_command_handler(message: types.Message):
+            user_lang = self.lang.parse_user_lang(message['from']['id'])
+            msg_header = f'*{self.lang.get_page_text("QUOTE", "TEXT", user_lang)}*\n\n'
+            author = '\n\n© '
+            response = requests.get(config.QUOTE_API_ENDPOINT, verify=False)
+            if response.status_code == 200:
+                quote = response.json()['quote']['body']
+                author += response.json()['quote']['author']
+                await message.answer(text=msg_header + markdown.italic(quote) + markdown.bold(author),
+                                     parse_mode='Markdown')
+            else:
+                await message.answer(text=self.lang.get_page_text('QUOTE', 'ERROR', user_lang))
+
         @self.dp.message_handler(
             lambda message: message.text == self.lang.get_page_text('BACK_MAIN_MENU', 'BUTTON', self.db.get_user_lang(
-                message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG)))
-        @self.analytics.default_metric
-        async def back_main_menu_command_handler(message: types.Message):
+                message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG)),
+            state="*")
+        @self.analytics.fsm_metric
+        async def back_main_menu_command_handler(message: types.Message, state: FSMContext):
             """Back to main menu command handler"""
+            await state.finish()
             user_lang = self.lang.parse_user_lang(message['from']['id'])
             await message.answer(text=self.lang.get_page_text('BACK_MAIN_MENU', 'TEXT', user_lang),
                                  reply_markup=self.markup.get_main_menu_markup(user_lang))
 
-        async def _send_dictionary_page(message: types.Message, user_lang: str):
-            user_dict = self.db.get_user_dict(message['from']['id'])
-            if len(user_dict) > 10:
-                user_dict_page = self.lang.get_user_dict(self.lang.paginated(user_dict, 10, 0), user_lang)
-                reply_markup = self.markup.get_pagination_markup('dictionary')
-            else:
-                user_dict_page = self.lang.get_user_dict(user_dict, user_lang)
-                reply_markup = None
+        async def _send_dictionary_page(message: types.Message, user_lang: str, state: FSMContext):
+            paginator = getattr(pagination, 'dictionary'.capitalize() + 'Paginator')(self.lang, self.db, self.markup,
+                                                                                     message['from']['id'])
             await message.answer(text=self.lang.get_page_text('DICTIONARY', 'TEXT', user_lang),
                                  reply_markup=self.markup.get_dictionary_markup(user_lang))
-            await message.answer(text=user_dict_page, reply_markup=reply_markup)
+            await message.answer(text=paginator.first_page(user_lang), reply_markup=paginator.get_reply_markup())
+            async with state.proxy() as data:
+                data['curr_pagination_page'] = 0
+            await DictionaryState.dictionary.set()
 
         # IF MAIN_MENU -> DICTIONARY COMMAND
         @self.dp.message_handler(
             lambda message: message.text == self.lang.get_markup_localization("MAIN_MENU", self.db.get_user_lang(
-                message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[0])
-        @self.analytics.default_metric
-        async def dictionary_command_handler(message: types.Message):
+                message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[0],
+            state="*")
+        @self.analytics.fsm_metric
+        async def dictionary_command_handler(message: types.Message, state: FSMContext):
             """Handler for dictionary command (📃 Dictionary)"""
             user_lang = self.lang.parse_user_lang(message['from']['id'])
-            await _send_dictionary_page(message, user_lang)
+            await _send_dictionary_page(message, user_lang, state)
 
         # IF MAIN_MENU -> ACHIEVEMENTS COMMAND
         @self.dp.message_handler(
             lambda message: message.text == self.lang.get_markup_localization("MAIN_MENU", self.db.get_user_lang(
-                message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[1])
+                message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[1],
+            state="*")
         @self.analytics.default_metric
         async def achievements_command_handler(message: types.Message):
             """TODO: Achievements page"""
@@ -151,7 +173,8 @@ class VocabularyBot:
         # IF MAIN_MENU -> RATING COMMAND
         @self.dp.message_handler(
             lambda message: message.text == self.lang.get_markup_localization("MAIN_MENU", self.db.get_user_lang(
-                message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[2])
+                message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[2],
+            state="*")
         @self.analytics.default_metric
         async def rating_command_handler(message: types.Message):
             """TODO: Rating page"""
@@ -165,7 +188,8 @@ class VocabularyBot:
         @self.dp.message_handler(
             lambda message: message.text == self.lang.get_markup_localization("MAIN_MENU", self.db.get_user_lang(
                 message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[
-                3])
+                3],
+            state="*")
         @self.analytics.default_metric
         async def profile_command_handler(message: types.Message):
             """Handler for settings command (⚙ Profile)"""
@@ -177,7 +201,8 @@ class VocabularyBot:
         # IF MAIN_MENU -> SETTINGS COMMAND
         @self.dp.message_handler(
             lambda message: message.text == self.lang.get_markup_localization("MAIN_MENU", self.db.get_user_lang(
-                message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[4])
+                message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[4],
+            state="*")
         @self.analytics.default_metric
         async def settings_command_handler(message: types.Message):
             """Handler for settings command (⚙ Settings)"""
@@ -195,7 +220,8 @@ class VocabularyBot:
         # IF MAIN_MENU -> HELP COMMAND
         @self.dp.message_handler(
             lambda message: message.text == self.lang.get_markup_localization("MAIN_MENU", self.db.get_user_lang(
-                message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[5])
+                message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[5],
+            state="*")
         @self.analytics.default_metric
         async def help_command_handler(message: types.Message):
             """Handler for settings command (❓ Help)"""
@@ -206,7 +232,8 @@ class VocabularyBot:
         # IF MAIN_MENU -> ADD WORD COMMAND
         @self.dp.message_handler(
             lambda message: message.text == self.lang.get_markup_localization("DICTIONARY", self.db.get_user_lang(
-                message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[0])
+                message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[0],
+            state=DictionaryState.dictionary)
         @self.analytics.default_metric
         async def new_word_command_handler(message: types.Message):
             """Handler for add new word command (➕ Add word)
@@ -265,12 +292,13 @@ class VocabularyBot:
                                      reply_markup=self.markup.get_dictionary_markup(user_lang))
             await state.finish()
             await asyncio.sleep(1)
-            await _send_dictionary_page(message, user_lang)
+            await _send_dictionary_page(message, user_lang, state)
 
         # IF MAIN_MENU -> DELETE WORD COMMAND
         @self.dp.message_handler(
             lambda message: message.text == self.lang.get_markup_localization("DICTIONARY", self.db.get_user_lang(
-                message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[1])
+                message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[1],
+            state=DictionaryState.dictionary)
         @self.analytics.default_metric
         async def delete_word_command_handler(message: types.Message):
             """Handler for delete word command (➖ Delete word)"""
@@ -295,7 +323,7 @@ class VocabularyBot:
             else:
                 await state.finish()
                 await message.answer(self.lang.get_page_text('DELETE_WORD', 'NOT_FOUND', user_lang))
-                await _send_dictionary_page(message, user_lang)
+                await _send_dictionary_page(message, user_lang, state)
 
         @self.dp.message_handler(state=DictionaryDeleteWordState.confirmation)
         @self.analytics.fsm_metric
@@ -310,12 +338,13 @@ class VocabularyBot:
                 await message.answer(self.lang.get_page_text('DELETE_WORD', 'CANCELLED', user_lang))
             await state.finish()
             await asyncio.sleep(1)
-            await _send_dictionary_page(message, user_lang)
+            await _send_dictionary_page(message, user_lang, state)
 
         # IF MAIN_MENU -> EDIT WORD COMMAND
         @self.dp.message_handler(
             lambda message: message.text == self.lang.get_markup_localization("DICTIONARY", self.db.get_user_lang(
-                message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[2])
+                message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[2],
+            state=DictionaryState.dictionary)
         @self.analytics.default_metric
         async def edit_word_command_handler(message: types.Message):
             """TODO: Handler for edit word command (✏ Edit word)"""
@@ -338,7 +367,8 @@ class VocabularyBot:
         # IF MAIN_MENU -> FIND WORD COMMAND
         @self.dp.message_handler(
             lambda message: message.text == self.lang.get_markup_localization("DICTIONARY", self.db.get_user_lang(
-                message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[3])
+                message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[3],
+            state=DictionaryState.dictionary)
         @self.analytics.default_metric
         async def find_word_command_handler(message: types.Message):
             """Handler for edit word command (🔎 Find word)"""
@@ -373,7 +403,8 @@ class VocabularyBot:
         # IF MAIN_MENU -> QUIZ COMMAND
         @self.dp.message_handler(
             lambda message: message.text == self.lang.get_markup_localization("DICTIONARY", self.db.get_user_lang(
-                message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[4])
+                message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[4],
+            state=DictionaryState.dictionary)
         @self.analytics.default_metric
         async def quiz_command_handler(message: types.Message):
             """Handler for edit word command (📝 Quiz)"""
@@ -384,20 +415,21 @@ class VocabularyBot:
         # IF MAIN_MENU -> STATISTICS COMMAND
         @self.dp.message_handler(
             lambda message: message.text == self.lang.get_markup_localization("DICTIONARY", self.db.get_user_lang(
-                message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[5])
-        @self.analytics.default_metric
-        async def quiz_command_handler(message: types.Message):
+                message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[5],
+            state=DictionaryState.dictionary)
+        @self.analytics.fsm_metric
+        async def quiz_command_handler(message: types.Message, state: FSMContext):
             """Handler for edit word command (📉 Statistics)"""
             user_lang = self.lang.parse_user_lang(message['from']['id'])
-            user_last_word_added = self.db.get_user_dict_last_word_date(message['from']['id'])
-            await message.answer(text=self.lang.get_user_dict_stats_page(message['from']['id'],
-                                                                         user_last_word_added.year,
-                                                                         user_last_word_added.month,
-                                                                         0, user_lang),
-                                 reply_markup=self.markup.get_pagination_markup('statistics'),
+            paginator = getattr(pagination, 'statistics'.capitalize() + 'Paginator')(self.lang, self.db, self.markup,
+                                                                                     message['from']['id'])
+            async with state.proxy() as data:
+                data['curr_pagination_page'] = 0
+            await message.answer(text=paginator.first_page(user_lang),
+                                 reply_markup=paginator.get_reply_markup(),
                                  parse_mode="Markdown")
 
-        @self.dp.message_handler(lambda message: message.text.startswith('/word_'))
+        @self.dp.message_handler(lambda message: message.text.startswith('/word_'), state="*")
         @self.analytics.default_metric
         async def word_by_id_command_handler(message: types.Message):
             word_id = int(message.text[6:])

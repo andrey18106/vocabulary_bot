@@ -69,20 +69,24 @@ class MarkupManager:
                 text=self.lang.get_page_text('BACK_MAIN_MENU', 'BUTTON', lang_code)))
         return markup
 
-    def get_admin_markup(self, permissions: list, lang_code: str) -> types.ReplyKeyboardMarkup:
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        markup_texts = self.lang.get_markup_localization('ADMIN', lang_code)
+    def get_admin_markup(self, permissions: tuple, lang_code: str) -> types.ReplyKeyboardMarkup:
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+        markup_texts = self.lang.get_admin_markup_localization(permissions, lang_code)
+        markup_rows = [markup_texts[i:i + 2] for i in range(0, len(markup_texts), 2)]
         if markup_texts is not None:
-            for i in range(0, len(markup_texts) - 1, 2):
-                markup.add(types.reply_keyboard.KeyboardButton(text=markup_texts[i]),
-                           types.reply_keyboard.KeyboardButton(text=markup_texts[i + 1]))
+            if len(markup_rows) % 2 == 0:
+                for i in range(0, len(markup_rows)):
+                    markup.add(types.reply_keyboard.KeyboardButton(text=markup_rows[i][0]),
+                               types.reply_keyboard.KeyboardButton(text=markup_rows[i][-1]))
+            else:
+                for markup_text in markup_texts:
+                    markup.add(types.reply_keyboard.KeyboardButton(text=markup_text))
         markup.add(
             types.reply_keyboard.KeyboardButton(text=self.lang.get_page_text("BACK_MAIN_MENU", "BUTTON", lang_code)))
         return markup
 
     @staticmethod
     def get_pagination_markup(action: str) -> types.InlineKeyboardMarkup:
-        """TODO: Implement pagination"""
         pagination_markup = types.InlineKeyboardMarkup()
         pagination_markup.row(types.InlineKeyboardButton(text="⏮", callback_data=f'first_{action}'),
                               types.InlineKeyboardButton(text="⬅", callback_data=f'prev_{action}'),

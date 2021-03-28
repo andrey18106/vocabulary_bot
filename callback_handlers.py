@@ -3,6 +3,7 @@
 # ===== Default imports =====
 
 import logging
+import inspect
 
 # ===== External libs imports =====
 
@@ -15,8 +16,9 @@ from analytics import BotAnalytics
 from db_manager import DbManager
 from lang_manager import LangManager
 from markups_manager import MarkupManager
-from states.Dictionary import DictionaryQuizState
+from states.Dictionary import DictionaryQuizState, DictionaryState
 from states.Mailing import AdminMailingState
+import pagination
 
 
 class VocabularyBotCallbackHandler:
@@ -107,31 +109,88 @@ class VocabularyBotCallbackHandler:
             await query.message.answer(text=self.lang.get_page_text('SETTINGS', 'TEXT', user_lang),
                                        reply_markup=self.markup.get_settings_markup(user_lang))
 
-        @self.dp.callback_query_handler(lambda query: query.data.startswith('first_'))
-        @self.analytics.callback_metric
-        async def pagination_first_callback_handler(query: types.CallbackQuery):
+        # PAGINATION
+        @self.dp.callback_query_handler(lambda query: query.data.startswith('first_'), state="*")
+        @self.analytics.callback_fsm_metric
+        async def pagination_first_callback_handler(query: types.CallbackQuery, state: FSMContext):
             action = query.data[6:]
+            user_lang = self.lang.parse_user_lang(query['from']['id'])
+            async with state.proxy() as data:
+                if 'curr_pagination_page' in data:
+                    current_page = data['curr_pagination_page']
+                    paginator = getattr(pagination, action.capitalize() + 'Paginator')(self.lang, self.db, self.markup,
+                                                                                       query['from']['id'],
+                                                                                       current_page=current_page)
+                    if not paginator.is_first():
+                        await query.message.edit_text(text=paginator.first_page(user_lang),
+                                                      reply_markup=paginator.get_reply_markup())
+                        data['curr_pagination_page'] = 0
+                    else:
+                        await query.answer(self.lang.get_page_text('PAGINATION', 'FIRST_REACHED', user_lang),
+                                           show_alert=True)
             logging.getLogger(type(self).__name__).info(f'[{action}] callback executed.')
             await query.answer()
 
-        @self.dp.callback_query_handler(lambda query: query.data.startswith('prev_'))
-        @self.analytics.callback_metric
-        async def pagination_prev_callback_handler(query: types.CallbackQuery):
+        @self.dp.callback_query_handler(lambda query: query.data.startswith('prev_'), state="*")
+        @self.analytics.callback_fsm_metric
+        async def pagination_prev_callback_handler(query: types.CallbackQuery, state: FSMContext):
             action = query.data[5:]
+            user_lang = self.lang.parse_user_lang(query['from']['id'])
+            async with state.proxy() as data:
+                if 'curr_pagination_page' in data:
+                    current_page = data['curr_pagination_page']
+                    paginator = getattr(pagination, action.capitalize() + 'Paginator')(self.lang, self.db, self.markup,
+                                                                                       query['from']['id'],
+                                                                                       current_page=current_page)
+                    if not paginator.is_first():
+                        await query.message.edit_text(text=paginator.prev_page(user_lang),
+                                                      reply_markup=paginator.get_reply_markup())
+                        data['curr_pagination_page'] -= 1
+                    else:
+                        await query.answer(self.lang.get_page_text('PAGINATION', 'FIRST_REACHED', user_lang),
+                                           show_alert=True)
             logging.getLogger(type(self).__name__).info(f'[{action}] callback executed.')
             await query.answer()
 
-        @self.dp.callback_query_handler(lambda query: query.data.startswith('next_'))
-        @self.analytics.callback_metric
-        async def pagination_next_callback_handler(query: types.CallbackQuery):
+        @self.dp.callback_query_handler(lambda query: query.data.startswith('next_'), state="*")
+        @self.analytics.callback_fsm_metric
+        async def pagination_next_callback_handler(query: types.CallbackQuery, state: FSMContext):
             action = query.data[5:]
+            user_lang = self.lang.parse_user_lang(query['from']['id'])
+            async with state.proxy() as data:
+                if 'curr_pagination_page' in data:
+                    current_page = data['curr_pagination_page']
+                    paginator = getattr(pagination, action.capitalize() + 'Paginator')(self.lang, self.db, self.markup,
+                                                                                       query['from']['id'],
+                                                                                       current_page=current_page)
+                    if not paginator.is_last():
+                        await query.message.edit_text(text=paginator.next_page(user_lang),
+                                                      reply_markup=paginator.get_reply_markup())
+                        data['curr_pagination_page'] += 1
+                    else:
+                        await query.answer(self.lang.get_page_text('PAGINATION', 'LAST_REACHED', user_lang),
+                                           show_alert=True)
             logging.getLogger(type(self).__name__).info(f'[{action}] callback executed.')
             await query.answer()
 
-        @self.dp.callback_query_handler(lambda query: query.data.startswith('last_'))
-        @self.analytics.callback_metric
-        async def pagination_last_callback_handler(query: types.CallbackQuery):
+        @self.dp.callback_query_handler(lambda query: query.data.startswith('last_'), state="*")
+        @self.analytics.callback_fsm_metric
+        async def pagination_last_callback_handler(query: types.CallbackQuery, state: FSMContext):
             action = query.data[5:]
+            user_lang = self.lang.parse_user_lang(query['from']['id'])
+            async with state.proxy() as data:
+                if 'curr_pagination_page' in data:
+                    current_page = data['curr_pagination_page']
+                    paginator = getattr(pagination, action.capitalize() + 'Paginator')(self.lang, self.db, self.markup,
+                                                                                       query['from']['id'],
+                                                                                       current_page=current_page)
+                    if not paginator.is_last():
+                        await query.message.edit_text(text=paginator.last_page(user_lang),
+                                                      reply_markup=paginator.get_reply_markup())
+                        data['curr_pagination_page'] = paginator.get_pages_count() - 1
+                    else:
+                        await query.answer(self.lang.get_page_text('PAGINATION', 'LAST_REACHED', user_lang),
+                                           show_alert=True)
             logging.getLogger(type(self).__name__).info(f'[{action}] callback executed.')
             await query.answer()
 
@@ -157,7 +216,7 @@ class VocabularyBotCallbackHandler:
                 await query.answer()
 
         # QUIZ CALLBACKS
-        @self.dp.callback_query_handler(lambda query: query.data == 'quiz_start')
+        @self.dp.callback_query_handler(lambda query: query.data == 'quiz_start', state="*")
         @self.analytics.callback_fsm_metric
         async def quiz_start_callback_handler(query: types.CallbackQuery, state: FSMContext):
             await query.answer()
@@ -238,7 +297,11 @@ class VocabularyBotCallbackHandler:
                     await query.message.answer(self.lang.get_page_text('QUIZ', 'FINISH', user_lang))
                     await query.message.answer(self.lang.get_quiz_results_page(data['quiz_results'], user_lang),
                                                parse_mode='Markdown')
+                    last_pagination_page = data['curr_pagination_page']
                 await state.finish()
+                await DictionaryState.dictionary.set()
+                async with state.proxy() as data:
+                    data['curr_pagination_page'] = last_pagination_page
             else:
                 await query.answer(self.lang.get_page_text('QUIZ', 'NON_SELECTED', user_lang),
                                    show_alert=True)

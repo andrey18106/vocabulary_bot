@@ -134,7 +134,34 @@
     "USERS": "Bot users",
     "STATISTICS": "Statistics of usage",
     "MAILINGS": "Mailing to bot users",
-    "DATABASE": "Database manager"
+    "DATABASE": "Database manager",
+    "PERMISSIONS": [
+      {
+        "LEVEL": 1,
+        "NAME": "Administrator",
+        "BUTTONS": [
+          "🙎 Users",
+          "📧 Mailings",
+          "📉 Analytics",
+          "🗄 Database"
+        ]
+      },
+      {
+        "LEVEL": 2,
+        "NAME": "Moderator",
+        "BUTTONS": [
+          "🙎 Users",
+          "📧 Mailings"
+        ]
+      },
+      {
+        "LEVEL": 3,
+        "NAME": "Teacher",
+        "BUTTONS": [
+          "🙎 Users"
+        ]
+      }
+    ]
   },
   "MAILINGS": {
     "NEW": "Send me one text message, that would be used for broadcast to bot users",
@@ -224,5 +251,13 @@
   },
   "STATISTICS": {
     "IN_DEVELOPING": "Statistics is in developing..."
+  },
+  "PAGINATION": {
+    "FIRST_REACHED": "First page already reached",
+    "LAST_REACHED": "Last page already reached"
+  },
+  "QUOTE": {
+    "TEXT": "Random quote of the day",
+    "ERROR": "Sorry, some error occurred, quote of the day is not available now"
   }
 }

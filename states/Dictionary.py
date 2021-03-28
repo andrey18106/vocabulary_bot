@@ -5,6 +5,12 @@
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
 
+class DictionaryState(StatesGroup):
+    dictionary = State()
+    statistics = State()
+    quiz = State()
+
+
 class DictionaryAddNewWordState(StatesGroup):
     word = State()
     translation = State()
