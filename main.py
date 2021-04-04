@@ -4,6 +4,7 @@
 
 import asyncio
 import logging
+import sys
 
 # ===== External libs imports =====
 
@@ -16,17 +17,21 @@ import config
 from vocabulary_bot import VocabularyBot
 
 
-async def main():
+async def main(dev_mode: bool):
     """Application entry point"""
     # TODO: Change to webhooks in production
 
     # ===== Basic initializations =====
 
     logging.basicConfig(level=logging.INFO)
-    bot = Bot(token=config.TOKEN)
+    if dev_mode:
+        bot = Bot(token=config.TOKEN_DEV)
+        logging.getLogger(__name__).info('Running in development mode')
+    else:
+        bot = Bot(token=config.TOKEN)
     storage = MemoryStorage()  # TODO: Change MemoryStorage to Redis
     dp = Dispatcher(bot, storage=storage)
-    vocabulary_bot = VocabularyBot(bot, dp)
+    vocabulary_bot = VocabularyBot(bot, dp, dev_mode)
 
     await vocabulary_bot.init_commands()
     await dp.skip_updates()
@@ -35,4 +40,5 @@ async def main():
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    is_dev_mode = 'dev' in sys.argv
+    asyncio.run(main(is_dev_mode))

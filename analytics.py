@@ -42,7 +42,7 @@ class BotAnalytics:
         return decorator
 
     def callback_fsm_metric(self, callback_handler):
-        """Decorator for callback handlers. Collects data (user, handler) and stores in DB"""
+        """Decorator for callback handlers with FSM. Collects data (user, handler) and stores in DB"""
         @functools.wraps(callback_handler)
         def decorator(query: types.CallbackQuery, state: FSMContext):
             self._log_callback_handler(callback_handler.__name__, query['from']['id'])

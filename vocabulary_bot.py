@@ -44,11 +44,12 @@ class VocabularyBot:
         BotCommand(command='/ping', description='Check the latency')
     ]
 
-    def __init__(self, bot: Bot, dispatcher: Dispatcher):
+    def __init__(self, bot: Bot, dispatcher: Dispatcher, dev_mode: bool):
         self.bot = bot
         self.dp = dispatcher
+        self.dev_mode = dev_mode
 
-        self.db = DbManager(config.PATH_TO_DB)
+        self.db = DbManager(config.PATH_TO_DB, self.dev_mode)
         self.db.create_connection()
         self.lang = LangManager(config.PATH_TO_TRANSLATIONS, self.db)
         self.markup = MarkupManager(self.lang)
@@ -71,7 +72,6 @@ class VocabularyBot:
         @VocabularyBotAntifloodMiddleware.rate_limit(5, 'start')
         @self.analytics.default_metric
         async def welcome_message_handler(message: types.Message):
-
             if self.db.is_user_exists(message['from']['id']):
                 user_lang = self.lang.parse_user_lang(message['from']['id'])
             else:

@@ -9,6 +9,7 @@ import os
 import random
 import sqlite3
 import time
+from shutil import copyfile
 
 # ===== Local imports =====
 
@@ -21,9 +22,14 @@ class DbManager:
 
     conn = None  # Connection to SQLite3 database
 
-    def __init__(self, path_to_db: str):
+    def __init__(self, path_to_db: str, dev_mode: bool):
+        self.dev_mode = dev_mode
         self.path_to_db = path_to_db
         self.path_to_sql_dump = str(path_to_db).replace('db', 'sql')
+        if self.dev_mode:
+            path_to_db_dev = str(path_to_db).replace('.db', '_dev.db')
+            copyfile(path_to_db, path_to_db_dev)
+            self.path_to_db = path_to_db_dev
 
     def create_connection(self):
         try:
@@ -60,7 +66,7 @@ class DbManager:
         except sqlite3.Error as error:
             logging.getLogger(type(self).__name__).error(f'Error while creating database.\n{error}')
 
-    def _execute_query(self, query, *args) -> sqlite3.Cursor:
+    def _execute_query(self, query: str, *args) -> sqlite3.Cursor:
         try:
             return self.conn.execute(query, args)
         except sqlite3.Error as error:
@@ -95,7 +101,7 @@ class DbManager:
         self._execute_query(query, value, user_id)
         self.conn.commit()
 
-    def add_metric(self, metric_name):
+    def add_metric(self, metric_name: str):
         query = 'INSERT INTO metrics (metric_name) VALUES (?)'
         self._execute_query(query, metric_name)
         self.conn.commit()
@@ -232,7 +238,8 @@ class DbManager:
         result = self._execute_query(query, mailings).fetchall()
         return map(lambda item: item[0], result) if len(result) > 0 else []
 
-    def _stat_pages(self, data: dict, size=10):
+    @staticmethod
+    def _stat_pages(data: dict, size: int = 10):
         it = iter(data)
         for i in range(0, len(data), size):
             yield {k: data[k] for k in islice(it, size)}
@@ -284,7 +291,8 @@ class DbManager:
         dates['total'] = total
         return dates
 
-    def _get_quiz_options(self, user_dict: list, word_string: str, word_translation: str, amount: int) -> list:
+    @staticmethod
+    def _get_quiz_options(user_dict: list, word_string: str, word_translation: str, amount: int) -> list:
         result = [word_translation]
         while len(result) <= amount:
             index = random.randint(0, len(user_dict) - 1)
