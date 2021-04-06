@@ -33,7 +33,8 @@ import pagination
 class VocabularyBot:
     """Basic class for Vocabulary Bot necessary logics"""
 
-    EN_PHRASE_REGEX = "^([A-Z]?[a-z]*'?[a-z]*)(,? ?,?([A-z]|[a-z]?([a-z]*)'?[a-z]*))*$"
+    REFERRAL_REGEX = "^referral_[0-9]*$"
+    EN_PHRASE_REGEX = "^([A-Z]?[a-z]*'?[a-z]*)(,?( |-)?,?([A-z]|[a-z]?([a-z]*)'?[a-z]*))*$"
     USERS_FOR_RATING_LIMIT = 10
     commands = [
         BotCommand(command='/start', description='Start the bot'),
@@ -81,7 +82,7 @@ class VocabularyBot:
                 user_lang = config.DEFAULT_LANG
 
                 # HANDLE REFERRAL
-                if message.get_args() is not None and re.match('^referral_[0-9]*$', message.get_args()):
+                if message.get_args() is not None and re.match(self.REFERRAL_REGEX, message.get_args()):
                     referrer_id = int(message.get_args()[9:])
                     # IF REFERRER EXISTS AND REFERRAL USER IS NOT EXISTS IN THE DATABASE
                     if self.db.is_user_exists(referrer_id) and message['from']['id'] != referrer_id:
@@ -192,7 +193,7 @@ class VocabularyBot:
             state="*")
         @self.analytics.default_metric
         async def profile_command_handler(message: types.Message):
-            """Handler for settings command (⚙ Profile)"""
+            """Handler for settings command (🙎‍♂️Profile)"""
             user_lang = self.lang.parse_user_lang(message['from']['id'])
             await message.answer(text=self.lang.get_user_profile_page(message['from']['id'], user_lang),
                                  parse_mode='Markdown',
@@ -421,13 +422,21 @@ class VocabularyBot:
         async def quiz_command_handler(message: types.Message, state: FSMContext):
             """Handler for edit word command (📉 Statistics)"""
             user_lang = self.lang.parse_user_lang(message['from']['id'])
-            paginator = getattr(pagination, 'statistics'.capitalize() + 'Paginator')(self.lang, self.db, self.markup,
-                                                                                     message['from']['id'])
             async with state.proxy() as data:
-                data['curr_pagination_page'] = 0
+                state_data = {
+                    'current_year_index': 0,
+                    'current_month_index': 0,
+                    'current_month_page': 0,
+                    'current_total_page': 0
+                }
+                data['curr_pagination_page'] = state_data
+                paginator = getattr(pagination, 'statistics'.capitalize() + 'Paginator')(self.lang, self.db,
+                                                                                         self.markup,
+                                                                                         message['from']['id'],
+                                                                                         current_page=state_data)
             await message.answer(text=paginator.first_page(user_lang),
                                  reply_markup=paginator.get_reply_markup(),
-                                 parse_mode="Markdown")
+                                 parse_mode=paginator.get_parse_mode())
 
         @self.dp.message_handler(lambda message: message.text.startswith('/word_'), state="*")
         @self.analytics.default_metric

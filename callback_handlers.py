@@ -123,8 +123,9 @@ class VocabularyBotCallbackHandler:
                                                                                        current_page=current_page)
                     if not paginator.is_first():
                         await query.message.edit_text(text=paginator.first_page(user_lang),
-                                                      reply_markup=paginator.get_reply_markup())
-                        data['curr_pagination_page'] = 0
+                                                      reply_markup=paginator.get_reply_markup(),
+                                                      parse_mode=paginator.get_parse_mode())
+                        data['curr_pagination_page'] = paginator.get_state_data()
                     else:
                         await query.answer(self.lang.get_page_text('PAGINATION', 'FIRST_REACHED', user_lang),
                                            show_alert=True)
@@ -144,8 +145,9 @@ class VocabularyBotCallbackHandler:
                                                                                        current_page=current_page)
                     if not paginator.is_first():
                         await query.message.edit_text(text=paginator.prev_page(user_lang),
-                                                      reply_markup=paginator.get_reply_markup())
-                        data['curr_pagination_page'] -= 1
+                                                      reply_markup=paginator.get_reply_markup(),
+                                                      parse_mode=paginator.get_parse_mode())
+                        data['curr_pagination_page'] = paginator.get_state_data()
                     else:
                         await query.answer(self.lang.get_page_text('PAGINATION', 'FIRST_REACHED', user_lang),
                                            show_alert=True)
@@ -165,8 +167,9 @@ class VocabularyBotCallbackHandler:
                                                                                        current_page=current_page)
                     if not paginator.is_last():
                         await query.message.edit_text(text=paginator.next_page(user_lang),
-                                                      reply_markup=paginator.get_reply_markup())
-                        data['curr_pagination_page'] += 1
+                                                      reply_markup=paginator.get_reply_markup(),
+                                                      parse_mode=paginator.get_parse_mode())
+                        data['curr_pagination_page'] = paginator.get_state_data()
                     else:
                         await query.answer(self.lang.get_page_text('PAGINATION', 'LAST_REACHED', user_lang),
                                            show_alert=True)
@@ -186,8 +189,9 @@ class VocabularyBotCallbackHandler:
                                                                                        current_page=current_page)
                     if not paginator.is_last():
                         await query.message.edit_text(text=paginator.last_page(user_lang),
-                                                      reply_markup=paginator.get_reply_markup())
-                        data['curr_pagination_page'] = paginator.get_pages_count() - 1
+                                                      reply_markup=paginator.get_reply_markup(),
+                                                      parse_mode=paginator.get_parse_mode())
+                        data['curr_pagination_page'] = paginator.get_state_data()
                     else:
                         await query.answer(self.lang.get_page_text('PAGINATION', 'LAST_REACHED', user_lang),
                                            show_alert=True)

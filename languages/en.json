@@ -52,6 +52,13 @@
       "📉 Statistics"
     ]
   },
+  "DICT_STATS": {
+    "HEADING": "Statistics of adding words (page {} of {}):\n\n",
+    "YEAR": "*{}* year:\n\n",
+    "DATE": "\t\t\t\t*{}* - {} word(s)\n",
+    "MONTH_TOTAL": "\n\tTotal for *{}*: {} word(s)\n\n",
+    "YEAR_TOTAL": "Total for *{}*: {} word(s)"
+  },
   "PROFILE": {
     "TEXT": "👨 Your profile",
     "DATE_FROM": "📅 User from",
@@ -212,6 +219,7 @@
     "BUTTON_NEXT": "Next ➡",
     "BUTTON_FINISH": "🏁 Finish ",
     "FINISH": "Quiz successfully finished!",
+    "FINISH_TOTAL": "Total results",
     "QUESTION": "Select the correct translation of the word: {}",
     "EXPLANATION": "The correct answer is:",
     "NON_SELECTED": "Select one of the options!",

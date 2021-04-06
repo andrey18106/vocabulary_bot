@@ -67,5 +67,11 @@ class DictionaryPaginator(Paginator):
     def get_reply_markup(self) -> types.InlineKeyboardMarkup:
         return self.markup.get_pagination_markup(action=self.action) if len(self.data) > 10 else None
 
+    def get_parse_mode(self):
+        pass
+
     def get_pages_count(self) -> int:
         return len(self.paginated_data)
+
+    def get_state_data(self):
+        return self.current_page

@@ -101,7 +101,8 @@ class MarkupManager:
                                                                                     user_lang)))
         return markup
 
-    def get_admin_database_markup(self, lang_code: str) -> types.InlineKeyboardMarkup:
+    @staticmethod
+    def get_admin_database_markup(lang_code: str) -> types.InlineKeyboardMarkup:
         """TODO: Create Admin Database Manager markup"""
         markup = types.InlineKeyboardMarkup()
         return markup
@@ -121,7 +122,8 @@ class MarkupManager:
                 markup.add(types.reply_keyboard.KeyboardButton(text))
         return markup
 
-    def get_cancel_markup(self) -> types.ReplyKeyboardMarkup:
+    @staticmethod
+    def get_cancel_markup() -> types.ReplyKeyboardMarkup:
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         markup.add(types.reply_keyboard.KeyboardButton(text='/cancel'))
         return markup

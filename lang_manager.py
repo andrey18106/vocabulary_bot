@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
 # ===== Default imports =====
+
 import calendar
 from datetime import datetime
+import math
 import json
 import logging
 import os
@@ -121,7 +123,7 @@ class LangManager:
         user_profile_page = self.get_page_text('PROFILE', 'TEXT', lang_code) + '\n\n'
         user_profile_page += f'*{self.get_page_text("PROFILE", "DATE_FROM", lang_code)}*: {user_date_from}\n'
         user_profile_page += f'*{self.get_page_text("PROFILE", "LANG_SETTING", lang_code)}*: {user_info[4]}\n'
-        user_profile_page += f'*{self.get_page_text("PROFILE", "MAILINGS", lang_code)}*: '\
+        user_profile_page += f'*{self.get_page_text("PROFILE", "MAILINGS", lang_code)}*: ' \
                              f'{self._parse_mailings_level(user_info[8], lang_code)}\n'
         user_profile_page += f'*{self.get_page_text("PROFILE", "DICT_CAPACITY", lang_code)}*: ' \
                              f'{self.db.get_user_dict_capacity(user_id)}\n'
@@ -137,18 +139,19 @@ class LangManager:
         user_referral_link = 'https://t.me/vocabularies_bot?start=referral_' + str(user_id)
         return self.get_page_text("PROFILE", "REFERRAL_LINK_TEXT", lang_code) + "\n\n" + user_referral_link
 
-    def get_user_dict_stats_page(self, stats: dict, year: int, month: int, month_page: int, lang_code: str) -> str:
-        """TODO: Multiple language output"""
-        result = f'Statistics of adding words (page {month_page + 1} of {stats["total_pages"]}):\n\n'
-        result += f'*{year}* year:\n\n'
-        result += f'   *{calendar.month_name[int(month)]}*:\n\n'
+    def get_user_dict_stats_page(self, stats: dict, year: int, month: int, month_page: int, total_page: int,
+                                 lang_code: str) -> str:
+        result = self.get_page_text('DICT_STATS', 'HEADING', lang_code).format(total_page + 1, stats["total_pages"])
+        result += self.get_page_text('DICT_STATS', 'YEAR', lang_code).format(year)
+        result += f'\t\t*{calendar.month_name[int(month)]}*:\n\n'
         page_data = stats['years'][str(year)]['months'][str(month)]['stats'][month_page]
         for day in page_data:
             dt = datetime.strftime(datetime(int(year), int(month), int(day)), "%d.%m.%Y")
-            result += f'      *{dt}* - {page_data[day]} word(s)\n'
-        result += f'\n   Total for *{calendar.month_name[int(month)]}*: ' \
-                  f'{stats["years"][str(year)]["months"][str(month)]["total"]} word(s)\n\n'
-        result += f'Total for *{year}*: {stats["years"][str(year)]["total"]} word(s)'
+            result += self.get_page_text('DICT_STATS', 'DATE', lang_code).format(dt, page_data[day])
+        result += self.get_page_text('DICT_STATS', 'MONTH_TOTAL', lang_code).format(
+            calendar.month_name[int(month)], stats["years"][str(year)]["months"][str(month)]["total"])
+        result += self.get_page_text('DICT_STATS', 'YEAR_TOTAL', lang_code).format(year,
+                                                                                   stats["years"][str(year)]["total"])
         return result
 
     def get_rating_page(self, user_id: int, lang_code: str) -> str:
@@ -165,14 +168,19 @@ class LangManager:
 
     def get_quiz_results_page(self, quiz_results: list, lang_code: str) -> str:
         result = self.get_page_text('QUIZ', 'RESULTS', lang_code) + ':\n\n'
+        correct_answers = 0
         for i in range(0, len(quiz_results)):
-            result += f'{i + 1}. *{quiz_results[i]["word"]}* '\
+            result += f'{i + 1}. *{quiz_results[i]["word"]}* ' \
                       f'(Your answer: {quiz_results[i]["options"][quiz_results[i]["selected_option"]]["text"]}'
             if quiz_results[i]['selected_option'] != quiz_results[i]['correct_option']:
                 result += f', Correct answer: {quiz_results[i]["options"][quiz_results[i]["correct_option"]]["text"]}'
                 result += f' `[{quiz_results[i]["selected_option"] == quiz_results[i]["correct_option"]}]`)\n'
             else:
                 result += f' `[{quiz_results[i]["selected_option"] == quiz_results[i]["correct_option"]}]`)\n'
+                correct_answers += 1
+        correct_percentage = math.floor(((correct_answers / len(quiz_results)) * 100))
+        result += f'\n{self.get_page_text("QUIZ", "FINISH_TOTAL", lang_code)}: ' \
+                  f'{correct_answers}/{len(quiz_results)} ({correct_percentage}%)'
         return result
 
     def get_achievements_page(self, user_id: int, lang_code: str) -> str:
@@ -185,4 +193,4 @@ class LangManager:
 
     @staticmethod
     def paginated(data: list, items_per_page: int, page_number: int) -> list:
-        return [data[x:x+items_per_page] for x in range(0, len(data), 10)][page_number]
+        return [data[x:x + items_per_page] for x in range(0, len(data), 10)][page_number]

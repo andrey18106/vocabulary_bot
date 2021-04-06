@@ -47,6 +47,10 @@ class Paginator:
         pass
 
     @abstractmethod
+    def get_parse_mode(self):
+        pass
+
+    @abstractmethod
     def is_first(self):
         pass
 
@@ -56,4 +60,8 @@ class Paginator:
 
     @abstractmethod
     def get_pages_count(self):
+        pass
+
+    @abstractmethod
+    def get_state_data(self):
         pass
