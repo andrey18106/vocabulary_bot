@@ -3,7 +3,6 @@
 # ===== Default imports =====
 
 import logging
-import inspect
 
 # ===== External libs imports =====
 
@@ -16,7 +15,7 @@ from analytics import BotAnalytics
 from db_manager import DbManager
 from lang_manager import LangManager
 from markups_manager import MarkupManager
-from states.Dictionary import DictionaryQuizState, DictionaryState
+from states.Dictionary import DictionaryQuizState, DictionaryState, DictionaryEditWordState, DictionarySearchWordState
 from states.Mailing import AdminMailingState
 import pagination
 
@@ -309,3 +308,36 @@ class VocabularyBotCallbackHandler:
             else:
                 await query.answer(self.lang.get_page_text('QUIZ', 'NON_SELECTED', user_lang),
                                    show_alert=True)
+
+        @self.dp.callback_query_handler(state=DictionarySearchWordState.search_query)
+        @self.analytics.callback_fsm_metric
+        async def search_word_actions_callback_handler(query: types.CallbackQuery, state: FSMContext):
+            user_lang = self.lang.parse_user_lang(query['from']['id'])
+            action = query.data[10:]
+            if action == 'add':
+                async with state.proxy() as data:
+                    new_word_string = data['search_query']
+                    new_word_translation = data['translation']
+                    self.db.add_user_word(new_word_string, new_word_translation, query['from']['id'], 'en', 'ru')
+                    await query.message.edit_text(self.lang.get_page_text('ADD_WORD', 'SUCCESSFUL_ADDED', user_lang))
+                await state.finish()
+            elif action == 'find_another':
+                await query.message.delete()
+                await query.message.answer(text=self.lang.get_page_text('FIND_WORD', 'WELCOME_TEXT', user_lang),
+                                           reply_markup=self.markup.get_cancel_markup())
+
+        @self.dp.callback_query_handler(state=DictionaryEditWordState.search_query)
+        @self.analytics.callback_metric
+        async def edit_word_actions_callback_handler(query: types.CallbackQuery):
+            user_lang = self.lang.parse_user_lang(query['from']['id'])
+            action = query.data[10:]
+            if action == 'string':
+                await DictionaryEditWordState.new_word_string.set()
+                await query.message.delete()
+                await query.message.answer(text=self.lang.get_page_text('EDIT_WORD', 'NEW_STRING', user_lang),
+                                           reply_markup=self.markup.get_cancel_markup())
+            elif action == 'translation':
+                await DictionaryEditWordState.new_word_translation.set()
+                await query.message.delete()
+                await query.message.answer(text=self.lang.get_page_text('EDIT_WORD', 'NEW_TRANSLATION', user_lang),
+                                           reply_markup=self.markup.get_cancel_markup())

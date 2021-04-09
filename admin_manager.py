@@ -58,7 +58,7 @@ class AdminManager:
                 await message.answer(text=self.lang.get_page_text('ADMIN', 'DEFAULT_PANEL_TEXT', user_lang),
                                      reply_markup=self.markup.get_main_menu_markup(user_lang))
 
-        @self.dp.message_handler(commands=['ping'])
+        @self.dp.message_handler(commands=['ping'], state='*')
         @VocabularyBotAntifloodMiddleware.rate_limit(1, 'ping')
         @self.analytics.default_metric
         async def ping_command_message_handler(message: types.Message):

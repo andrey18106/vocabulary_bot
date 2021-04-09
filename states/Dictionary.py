@@ -24,13 +24,13 @@ class DictionaryDeleteWordState(StatesGroup):
 
 class DictionaryEditWordState(StatesGroup):
     search_query = State()
-    new_value = State()
+    new_word_string = State()
+    new_word_translation = State()
     confirmation = State()
 
 
 class DictionarySearchWordState(StatesGroup):
     search_query = State()
-    confirmation = State()
 
 
 class DictionaryQuizState(StatesGroup):

@@ -8,13 +8,11 @@ import logging
 import os
 import random
 import sqlite3
-import time
 from shutil import copyfile
 
 # ===== Local imports =====
 
 from itertools import islice
-from translation import google_translate, leo_translate
 
 
 class DbManager:
@@ -223,6 +221,16 @@ class DbManager:
         self._execute_query(query, user_id, word_string, word_translation, datetime.now().date(), from_lang, to_lang)
         self.conn.commit()
 
+    def update_user_word_string(self, user_id: int, word_id: int, word_string: str):
+        query = 'UPDATE words SET word_string=? WHERE user_id=? AND word_id=?'
+        self._execute_query(query, word_string, user_id, word_id)
+        self.conn.commit()
+
+    def update_user_word_translation(self, user_id: int, word_id: int, word_translation: str):
+        query = 'UPDATE words SET word_translation=? WHERE user_id=? AND word_id=?'
+        self._execute_query(query, word_translation, user_id, word_id)
+        self.conn.commit()
+
     def get_user_word_by_str(self, word_string: str, user_id: int) -> int:
         query = 'SELECT word_id FROM words WHERE user_id=? AND word_string=?'
         result = self._execute_query(query, user_id, word_string).fetchall()
@@ -329,52 +337,11 @@ class DbManager:
                    OFFSET ?'''
         return self._execute_query(query, limit, offset).fetchall()
 
-    def __translate_stock_vocabulary(self, pack_size, offset):
-        """TODO: REMOVE AFTER DATA PROCESSING OF THE STOCK VOCABULARY"""
-        words = self.get_stock_vocabulary_words(pack_size, offset)
-        for word in words:
-            translation = google_translate(word[1], 'en', 'ru')
-            print(word, translation)
-            if translation != '' and translation is not None:
-                self.set_stock_word_translation(word[0], translation)
-            else:
-                print('None response')
-            time.sleep(5)
-
-    def __transcribe_stock_vocabulary(self, pack_size, offset):
-        """TODO: REMOVE AFTER DATA PROCESSING OF THE STOCK VOCABULARY"""
-        words = self.get_stock_vocabulary_words(pack_size, offset)
-        for word in words:
-            leo_translation = leo_translate(word[1])
-            print(leo_translation)
-            if len(leo_translation['translations']) > 0:
-                self.set_stock_word_translation(word[0], leo_translation['translations'][0])
-            self.set_stock_word_transcription(word[0], leo_translation['transcription'])
-            time.sleep(1)
-
-    def get_stock_vocabulary_words(self, pack_size: int, offset: int):
-        """TODO: REMOVE AFTER DATA PROCESSING OF THE STOCK VOCABULARY"""
-        query = 'SELECT word_id, word_string FROM stock_vocabulary LIMIT ? OFFSET ?'
-        return self._execute_query(query, pack_size, offset).fetchall()
-
-    def set_stock_word_translation(self, word_id: int, word_translation: str):
-        """TODO: REMOVE AFTER DATA PROCESSING OF THE STOCK VOCABULARY"""
-        query = 'UPDATE stock_vocabulary SET word_translation=? WHERE word_id=?'
-        self._execute_query(query, word_translation, word_id)
-        self.conn.commit()
-
-    def set_stock_word_transcription(self, word_id: int, word_transcription: str):
-        """TODO: REMOVE AFTER DATA PROCESSING OF THE STOCK VOCABULARY"""
-        query = 'UPDATE stock_vocabulary SET word_transcription=? WHERE word_id=?'
-        self._execute_query(query, word_transcription, word_id)
-        self.conn.commit()
-
     def search_user_word(self, user_id: int, word_string: str) -> list:
         query = 'SELECT * FROM words WHERE user_id=? AND word_string=?'
         result = self._execute_query(query, user_id, word_string).fetchall()
         return result[0] if len(result) > 0 else []
 
     def get_user_achievements(self, user_id: int) -> list:
-        """TODO: Change achievements database structure"""
         query = 'SELECT * FROM achievements WHERE user_id=?'
         return self._execute_query(query, user_id).fetchall()

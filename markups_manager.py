@@ -161,3 +161,21 @@ class MarkupManager:
         markup.add(types.InlineKeyboardButton(text=self.lang.get_page_text('QUIZ', 'BUTTON_FINISH', lang_code),
                                               callback_data='quiz_finish'))
         return markup
+
+    def get_find_word_found_markup(self, lang_code: str) -> types.InlineKeyboardMarkup:
+        markup = types.InlineKeyboardMarkup()
+        markup.add(
+            types.InlineKeyboardButton(text=self.lang.get_page_text('FIND_WORD', 'NOT_FOUND_ADD_WORD', lang_code),
+                                       callback_data='find_word_add'))
+        markup.add(
+            types.InlineKeyboardButton(text=self.lang.get_page_text('FIND_WORD', 'FIND_ANOTHER', lang_code),
+                                       callback_data='find_word_find_another'))
+        return markup
+
+    def get_edit_markup(self, lang_code: str) -> types.InlineKeyboardMarkup:
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton(text=self.lang.get_page_text('EDIT_WORD', 'STRING', lang_code),
+                                              callback_data='edit_word_string'))
+        markup.add(types.InlineKeyboardButton(text=self.lang.get_page_text('EDIT_WORD', 'TRANSLATION', lang_code),
+                                              callback_data='edit_word_translation'))
+        return markup

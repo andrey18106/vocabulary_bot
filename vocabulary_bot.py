@@ -28,6 +28,7 @@ from antiflood import VocabularyBotAntifloodMiddleware
 from states.Dictionary import DictionaryState, DictionaryAddNewWordState, DictionaryDeleteWordState, \
     DictionarySearchWordState, DictionaryEditWordState
 import pagination
+import translation
 
 
 class VocabularyBot:
@@ -41,8 +42,7 @@ class VocabularyBot:
         BotCommand(command='/help', description='Welcome message'),
         BotCommand(command='/settings', description='Bot settings'),
         BotCommand(command='/cancel', description='Cancel command executing'),
-        BotCommand(command='/quote', description='Quote of the day'),
-        BotCommand(command='/ping', description='Check the latency')
+        BotCommand(command='/quote', description='Quote of the day')
     ]
 
     def __init__(self, bot: Bot, dispatcher: Dispatcher, dev_mode: bool):
@@ -260,6 +260,9 @@ class VocabularyBot:
             if re.match(self.EN_PHRASE_REGEX, message.text) is None:
                 await message.answer(self.lang.get_page_text('ADD_WORD', 'NOT_VALID', user_lang))
                 return
+            elif self.db.get_user_word_by_str(message.text, message['from']['id']) is not None:
+                await message.answer(self.lang.get_page_text('ADD_WORD', 'ALREADY_EXISTS', user_lang))
+                return
             async with state.proxy() as data:
                 data['word'] = message.text
             await DictionaryAddNewWordState.next()
@@ -317,10 +320,11 @@ class VocabularyBot:
                 data['word_id'] = self.db.get_user_word_by_str(message.text, message['from']['id'])
             if data['word_id'] is not None:
                 await DictionaryDeleteWordState.next()
-                await message.answer(
-                    self.lang.get_word_info(self.db.get_user_word_by_str(message.text, message['from']['id']),
-                                            message['from']['id'], user_lang),
-                    reply_markup=self.markup.get_confirmation_markup(user_lang))
+                msg = self.lang.get_word_info(self.db.get_user_word_by_str(message.text, message['from']['id']),
+                                              message['from']['id'], user_lang)
+                msg += '\n\n' + self.lang.get_page_text('DELETE_WORD', 'CONFIRMATION', user_lang)
+                await message.answer(text=msg,
+                                     reply_markup=self.markup.get_confirmation_markup(user_lang))
             else:
                 await state.finish()
                 await message.answer(self.lang.get_page_text('DELETE_WORD', 'NOT_FOUND', user_lang))
@@ -348,7 +352,7 @@ class VocabularyBot:
             state=DictionaryState.dictionary)
         @self.analytics.default_metric
         async def edit_word_command_handler(message: types.Message):
-            """TODO: Handler for edit word command (✏ Edit word)"""
+            """Handler for edit word command (✏ Edit word)"""
             user_lang = self.lang.parse_user_lang(message['from']['id'])
             await DictionaryEditWordState.search_query.set()
             await message.answer(text=self.lang.get_page_text('EDIT_WORD', 'WELCOME_TEXT', user_lang),
@@ -362,8 +366,59 @@ class VocabularyBot:
                 data['search_query'] = message.text
             query_result = self.db.search_user_word(message['from']['id'], data['search_query'])
             if len(query_result) > 0:
+                async with state.proxy() as data:
+                    data['found_word'] = query_result
                 await message.answer(self.lang.get_page_text('EDIT_WORD', 'WORD_FOUND', user_lang) + '\n\n'
-                                     + f'[{query_result[5]} - {query_result[6]}] {query_result[2]} - {query_result[3]}')
+                                     + f'[{query_result[5]} - {query_result[6]}] {query_result[2]} - {query_result[3]}',
+                                     reply_markup=self.markup.get_edit_markup(user_lang))
+            else:
+                await message.answer(self.lang.get_page_text('EDIT_WORD', 'NOT_FOUND', user_lang))
+
+        @self.dp.message_handler(state=DictionaryEditWordState.new_word_string)
+        @self.analytics.fsm_metric
+        async def edit_word_state_new_word_string_handler(message: types.Message, state: FSMContext):
+            user_lang = self.lang.parse_user_lang(message['from']['id'])
+            async with state.proxy() as data:
+                data['action'] = 'string'
+                data['new_value'] = message.text
+                msg = self.lang.get_page_text('EDIT_WORD', 'CONFIRMATION', user_lang) + ':\n\n'
+                msg += f"{data['found_word'][2]} -> {data['new_value']}"
+                await message.answer(text=msg, reply_markup=self.markup.get_confirmation_markup(user_lang))
+                await DictionaryEditWordState.confirmation.set()
+
+        @self.dp.message_handler(state=DictionaryEditWordState.new_word_translation)
+        @self.analytics.fsm_metric
+        async def edit_word_state_new_word_translation_handler(message: types.Message, state: FSMContext):
+            user_lang = self.lang.parse_user_lang(message['from']['id'])
+            async with state.proxy() as data:
+                data['action'] = 'translation'
+                data['new_value'] = message.text
+                msg = self.lang.get_page_text('EDIT_WORD', 'CONFIRMATION', user_lang) + ':\n\n'
+                msg += f"{data['found_word'][3]} -> {data['new_value']}"
+                await message.answer(text=msg, reply_markup=self.markup.get_confirmation_markup(user_lang))
+                await DictionaryEditWordState.confirmation.set()
+
+        @self.dp.message_handler(state=DictionaryEditWordState.confirmation)
+        @self.analytics.fsm_metric
+        async def edit_word_state_confirmation_handler(message: types.Message, state: FSMContext):
+            user_lang = self.lang.parse_user_lang(message['from']['id'])
+            confirmation_options = self.lang.get_markup_localization('ADD_WORD', user_lang)
+            if message.text == confirmation_options[0]:
+                async with state.proxy() as data:
+                    word_id = data['found_word'][0]
+                    if data['action'] == 'string':
+                        self.db.update_user_word_string(message['from']['id'], word_id, data['new_value'])
+                    elif data['action'] == 'translation':
+                        self.db.update_user_word_translation(message['from']['id'], word_id, data['new_value'])
+                    await message.answer(self.lang.get_page_text('EDIT_WORD', 'SUCCESSFUL', user_lang))
+                    await state.finish()
+                    await DictionaryState.dictionary.set()
+                    await _send_dictionary_page(message, user_lang, state)
+            else:
+                await message.answer(self.lang.get_page_text('EDIT_WORD', 'CANCELED', user_lang))
+                await state.finish()
+                await DictionaryState.dictionary.set()
+                await _send_dictionary_page(message, user_lang, state)
 
         # IF MAIN_MENU -> FIND WORD COMMAND
         @self.dp.message_handler(
@@ -386,20 +441,21 @@ class VocabularyBot:
                 data['search_query'] = message.text
             query_result = self.db.search_user_word(message['from']['id'], data['search_query'])
             if len(query_result) > 0:
+                found_word_str = f"[{query_result[5]} - {query_result[6]}] " \
+                                 f"{query_result[2]} - {query_result[3]} /word_{query_result[0]}"
                 await message.answer(self.lang.get_page_text('FIND_WORD', 'WORD_FOUND', user_lang) + '\n\n'
-                                     + str(query_result))
+                                     + found_word_str)
                 async with state.proxy() as data:
                     data['result'] = query_result
-                await DictionarySearchWordState.next()
-            else:
                 await state.finish()
-                await message.answer(self.lang.get_page_text('FIND_WORD', 'NOT_FOUND', user_lang))
-
-        @self.dp.message_handler(state=DictionarySearchWordState.confirmation)
-        @self.analytics.fsm_metric
-        async def search_word_state_confirmation_handler(message: types.Message, state: FSMContext):
-            user_lang = self.lang.parse_user_lang(message['from']['id'])
-            ...
+            else:
+                word_translation = translation.linguee_translate(data['search_query'])
+                async with state.proxy() as data:
+                    data['translation'] = word_translation
+                msg = f"{self.lang.get_page_text('FIND_WORD', 'NOT_FOUND', user_lang)}\n"
+                msg += f"{self.lang.get_page_text('FIND_WORD', 'NOT_FOUND_TRANSLATION', user_lang)}:\n\n"
+                msg += f"{data['search_query']} - {word_translation}"
+                await message.answer(text=msg, reply_markup=self.markup.get_find_word_found_markup(user_lang))
 
         # IF MAIN_MENU -> QUIZ COMMAND
         @self.dp.message_handler(
@@ -441,6 +497,7 @@ class VocabularyBot:
         @self.dp.message_handler(lambda message: message.text.startswith('/word_'), state="*")
         @self.analytics.default_metric
         async def word_by_id_command_handler(message: types.Message):
+            """TODO: Add InlineKeyboardMarkup for additional actions with word (audio, definitions, etc.)"""
             word_id = int(message.text[6:])
             user_lang = self.lang.parse_user_lang(message['from']['id'])
             if self.db.word_in_user_dict(word_id, message['from']['id']):

@@ -119,7 +119,7 @@
         "CALLBACK_DATA": "news_setting_important"
       },
       {
-        "TEXT": "⚠ Вимкнути",
+        "TEXT": "❌ Вимкнути",
         "CALLBACK_DATA": "news_setting_disable"
       }
     ],
@@ -236,25 +236,38 @@
       "❌ Ні"
     ],
     "NOT_VALID": "Слово має містити лише англійські літери. Спробуйте ще раз",
+    "ALREADY_EXISTS": "The word already exists in your dictionary",
     "CANCELLED": "Додавання нового слова скасовано",
     "IN_DEVELOPING": "Команда додавання слова в розробці..."
   },
   "DELETE_WORD": {
     "WELCOME_TEXT": "Відправ мені слово для видалення в наступному повідомленні",
     "SUCCESSFUL_DELETED": "Слово успішно видалено",
+    "CONFIRMATION": "Підтвердіть видалення цього слова:",
     "CANCELLED": "Видалення слова скасовано",
     "NOT_FOUND": "Слово не знайдено",
     "IN_DEVELOPING": "Команда видалення слова в розробці..."
   },
   "EDIT_WORD": {
     "WELCOME_TEXT": "Відправ мені слово зі свого словника, яке хочешь відредагувати",
-    "WORD_FOUND": "Word to edit successfully found",
+    "WORD_FOUND": "Слово для редагування успішно знайдено",
+    "NOT_FOUND": "Слова не знайдено у вашому словнику. Спробуйте ще раз або /cancel",
+    "STRING": "Редагувати слово",
+    "TRANSLATION": "Редагувати переклад",
+    "NEW_STRING": "Відправ мені змінене слово",
+    "NEW_TRANSLATION": "Відправ мені змінений переклад",
+    "SUCCESSFUL": "Слово успішно змінено",
+    "CONFIRMATION": "Підтвердіть редагування слова",
+    "CANCELED": "Редагування слова скасовано",
     "IN_DEVELOPING": "Команда редагування слова в розробці..."
   },
   "FIND_WORD": {
     "WELCOME_TEXT": "Відправ мені слово для пошуку в наступному повідомленні",
     "WORD_FOUND": "Результат пошуку",
     "NOT_FOUND": "Слова не знайдено у вашому словнику",
+    "NOT_FOUND_TRANSLATION": "Але ми знайши переклад слова",
+    "NOT_FOUND_ADD_WORD": "Додати в мій словник",
+    "FIND_ANOTHER": "Знайти інше слово",
     "IN_DEVELOPING": "Команда пошуку слова в розробці..."
   },
   "STATISTICS": {

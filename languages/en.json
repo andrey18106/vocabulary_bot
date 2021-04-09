@@ -236,12 +236,14 @@
       "❌ No"
     ],
     "NOT_VALID": "The word should contain only English letters. Try again",
+    "ALREADY_EXISTS": "The word already exists in your dictionary",
     "CANCELLED": "Adding a new word canceled",
     "IN_DEVELOPING": "Add word command is in developing..."
   },
   "DELETE_WORD": {
     "WELCOME_TEXT": "Send me a word you want to delete",
     "SUCCESSFUL_DELETED": "Word successfully deleted",
+    "CONFIRMATION": "Confirm deleting this word",
     "CANCELLED": "Word deleting canceled",
     "NOT_FOUND": "Word not found",
     "IN_DEVELOPING": "Delete word command is in developing..."
@@ -249,12 +251,23 @@
   "EDIT_WORD": {
     "WELCOME_TEXT": "Send me a word from your dictionary you want to edit",
     "WORD_FOUND": "Word to edit successfully found",
+    "NOT_FOUND": "Word not found in your dictionary. Try again or /cancel",
+    "STRING": "Edit word string",
+    "TRANSLATION": "Edit word translation",
+    "NEW_STRING": "Send me an edited word string",
+    "NEW_TRANSLATION": "Send me a new word translation",
+    "SUCCESSFUL": "Word successfully edited",
+    "CONFIRMATION": "Confirm word editing",
+    "CANCELED": "Word editing canceled",
     "IN_DEVELOPING": "Edit word command is in developing..."
   },
   "FIND_WORD": {
     "WELCOME_TEXT": "Send me a word you want to find",
     "WORD_FOUND": "Searching result",
     "NOT_FOUND": "Word not found in your dictionary",
+    "NOT_FOUND_TRANSLATION": "But we found the translation of the word",
+    "NOT_FOUND_ADD_WORD": "Add to my dictionary",
+    "FIND_ANOTHER": "Find another word",
     "IN_DEVELOPING": "Find word command is in developing..."
   },
   "STATISTICS": {

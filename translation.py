@@ -8,8 +8,7 @@ from urllib.parse import quote
 
 import requests
 
-
-DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '\
+DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
                      'Chrome/89.0.4389.82 Safari/537.36 Edg/89.0.774.50'
 
 headers = {
@@ -38,6 +37,24 @@ def google_translate(source_text: str, from_lang: str, to_lang: str) -> str:
     return ''
 
 
+def google_translate_extended(query: str, from_lang: str, to_lang: str) -> dict:
+    request_url = 'https://translate.googleapis.com/translate_a/single'
+    params = {
+        'client': 'gtx',
+        'sl': 'auto',
+        'tl': to_lang,
+        'dt': 'bd',
+        'dj': '1',
+        'q': query
+    }
+    response = requests.get(request_url, headers=headers, params=params)
+    if response.status_code == 200:
+        result = response.json()
+    else:
+        result = {'status': 'false'}
+    return result
+
+
 def leo_translate(source_text: str):
     """Get a few word translations in English"""
     url = LEO_CONFIG['api'] + LEO_CONFIG['get_translations'] + f'?word={quote(source_text)}'
@@ -51,3 +68,11 @@ def leo_translate(source_text: str):
         }
         return result
     return None
+
+
+def linguee_translate(text: str):
+    from deep_translator import LingueeTranslator
+    return LingueeTranslator(source='english', target='russian').translate(text)
+
+
+# print(linguee_translate('investigation'))
