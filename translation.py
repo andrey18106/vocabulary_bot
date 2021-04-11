@@ -73,6 +73,3 @@ def leo_translate(source_text: str):
 def linguee_translate(text: str):
     from deep_translator import LingueeTranslator
     return LingueeTranslator(source='english', target='russian').translate(text)
-
-
-# print(linguee_translate('investigation'))

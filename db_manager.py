@@ -49,7 +49,7 @@ class DbManager:
 
     def _database_created(self) -> bool:
         tables = ['users', 'words', 'metrics', 'analytics_log', 'permissions', 'admins', 'achievements',
-                  'achievements_log', 'stock_vocabulary']
+                  'achievements_log']
         query = '''SELECT name FROM sqlite_master WHERE type='table' AND name=?;'''
         result = True
         for table_name in tables:
@@ -90,9 +90,9 @@ class DbManager:
         self._execute_query(query, user_lang, user_id)
         self.conn.commit()
 
-    def get_user_mailings(self, user_id: int) -> bool:
+    def get_user_mailings(self, user_id: int) -> int:
         query = 'SELECT mailings FROM users WHERE user_id=?'
-        return bool(self._execute_query(query, user_id).fetchall()[0])
+        return self._execute_query(query, user_id).fetchall()[0][0]
 
     def set_user_mailings(self, user_id: int, value: int):
         query = 'UPDATE users SET mailings=? WHERE user_id=?'
@@ -164,11 +164,10 @@ class DbManager:
         query = 'SELECT permission_level FROM admins WHERE user_id=?'
         return self._execute_query(query, user_id).fetchall()[0][0]
 
-    def get_user_dict(self, user_id: int) -> list:
+    def get_user_dict(self, user_id: int, from_lang: str, to_lang: str) -> list:
         query = '''SELECT word_id, word_string, word_translation, from_lang, to_lang, date_added
-                FROM words WHERE user_id=?'''
-        user_dict = self._execute_query(query, user_id).fetchall()
-        return user_dict
+                FROM words WHERE user_id=? AND from_lang=? AND to_lang=?'''
+        return self._execute_query(query, user_id, from_lang, to_lang).fetchall()
 
     def word_in_user_dict(self, word_id: int, user_id: int) -> bool:
         query = 'SELECT word_id FROM words WHERE word_id=? AND user_id=?'
@@ -192,8 +191,12 @@ class DbManager:
         query = 'SELECT * FROM users WHERE user_id=?'
         return self._execute_query(query, user_id).fetchall()[0]
 
-    def get_user_dict_capacity(self, user_id: int) -> int:
-        query = 'SELECT * FROM words WHERE user_id=?'
+    def get_user_dict_capacity(self, user_id: int, from_lang: str, to_lang: str) -> int:
+        query = 'SELECT word_id FROM words WHERE user_id=? AND from_lang=? AND to_lang=?'
+        return len(self._execute_query(query, user_id, from_lang, to_lang).fetchall())
+
+    def get_user_total_dict_capacity(self, user_id: int) -> int:
+        query = 'SELECT word_id FROM words WHERE user_id=?'
         return len(self._execute_query(query, user_id).fetchall())
 
     def get_user_referral_count(self, user_id: int) -> int:
@@ -258,46 +261,47 @@ class DbManager:
         result = datetime(int(query_result[0]), int(query_result[1]), int(query_result[2]))
         return result
 
-    def get_user_dictionary_stats(self, user_id: int) -> dict:
+    def get_user_dictionary_stats(self, user_id: int, from_lang: str, to_lang: str) -> dict:
         dates = dict()
         dates['years'] = dict()
-        user_dict = self.get_user_dict(user_id)
-        for word in user_dict:
-            word_date = word[5].split('-')
-            dt = datetime(int(word_date[0]), int(word_date[1]), int(word_date[2]))
-            if not str(dt.year) in dates['years']:
-                dates['years'][str(dt.year)] = dict()
-                dates['years'][str(dt.year)]['months'] = dict()
-                dates['years'][str(dt.year)]['total'] = 0
-            if str(dt.year) in dates['years'] and not str(dt.month) in dates['years'][str(dt.year)]['months']:
-                dates['years'][str(dt.year)]['months'][str(dt.month)] = dict()
-                dates['years'][str(dt.year)]['months'][str(dt.month)]['total'] = 0
-                dates['years'][str(dt.year)]['months'][str(dt.month)]['stats'] = dict()
-            if str(dt.day) in dates['years'][str(dt.year)]['months'][str(dt.month)]['stats']:
-                dates['years'][str(dt.year)]['months'][str(dt.month)]['stats'][str(dt.day)] += 1
-                dates['years'][str(dt.year)]['months'][str(dt.month)]['total'] += 1
-                dates['years'][str(dt.year)]['total'] += 1
-            else:
-                dates['years'][str(dt.year)]['months'][str(dt.month)]['stats'][str(dt.day)] = 1
-                dates['years'][str(dt.year)]['months'][str(dt.month)]['total'] += 1
-                dates['years'][str(dt.year)]['total'] += 1
-        total_pages = 0
-        total = 0
-        for year in dates['years']:
-            year_pages = 0
-            for month in dates['years'][year]['months']:
-                month_pages = list()
-                for month_page_data in self._stat_pages(dates['years'][year]['months'][month]['stats'], 7):
-                    month_pages.append(month_page_data)
-                year_pages += len(month_pages)
-                dates['years'][year]['months'][month]['stats'] = month_pages
-                dates['years'][year]['months'][month]['pages'] = len(month_pages)
-                total += dates['years'][year]['months'][month]['total']
-            dates['years'][year]['pages'] = year_pages
-            total_pages += year_pages
-        dates['total_pages'] = total_pages
-        dates['total'] = total
-        return dates
+        user_dict = self.get_user_dict(user_id, from_lang, to_lang)
+        if len(user_dict) > 0:
+            for word in user_dict:
+                word_date = word[5].split('-')
+                dt = datetime(int(word_date[0]), int(word_date[1]), int(word_date[2]))
+                if not str(dt.year) in dates['years']:
+                    dates['years'][str(dt.year)] = dict()
+                    dates['years'][str(dt.year)]['months'] = dict()
+                    dates['years'][str(dt.year)]['total'] = 0
+                if str(dt.year) in dates['years'] and not str(dt.month) in dates['years'][str(dt.year)]['months']:
+                    dates['years'][str(dt.year)]['months'][str(dt.month)] = dict()
+                    dates['years'][str(dt.year)]['months'][str(dt.month)]['total'] = 0
+                    dates['years'][str(dt.year)]['months'][str(dt.month)]['stats'] = dict()
+                if str(dt.day) in dates['years'][str(dt.year)]['months'][str(dt.month)]['stats']:
+                    dates['years'][str(dt.year)]['months'][str(dt.month)]['stats'][str(dt.day)] += 1
+                    dates['years'][str(dt.year)]['months'][str(dt.month)]['total'] += 1
+                    dates['years'][str(dt.year)]['total'] += 1
+                else:
+                    dates['years'][str(dt.year)]['months'][str(dt.month)]['stats'][str(dt.day)] = 1
+                    dates['years'][str(dt.year)]['months'][str(dt.month)]['total'] += 1
+                    dates['years'][str(dt.year)]['total'] += 1
+            total_pages = 0
+            total = 0
+            for year in dates['years']:
+                year_pages = 0
+                for month in dates['years'][year]['months']:
+                    month_pages = list()
+                    for month_page_data in self._stat_pages(dates['years'][year]['months'][month]['stats'], 7):
+                        month_pages.append(month_page_data)
+                    year_pages += len(month_pages)
+                    dates['years'][year]['months'][month]['stats'] = month_pages
+                    dates['years'][year]['months'][month]['pages'] = len(month_pages)
+                    total += dates['years'][year]['months'][month]['total']
+                dates['years'][year]['pages'] = year_pages
+                total_pages += year_pages
+            dates['total_pages'] = total_pages
+            dates['total'] = total
+            return dates
 
     @staticmethod
     def _get_quiz_options(user_dict: list, word_string: str, word_translation: str, amount: int) -> list:
@@ -309,12 +313,11 @@ class DbManager:
                 result.append(user_dict[index][2].lower())
         return random.sample(result, len(result))
 
-    def get_user_quiz_data(self, user_id: int, from_lang: str, to_lang: str) -> list:
-        """TODO: Generating random quiz for different language pairs"""
+    def get_user_quiz_data(self, user_id: int, from_lang: str, to_lang: str, questions_number: int) -> list:
         quiz_data = list()
         quiz_words = list()
-        user_dict = self.get_user_dict(user_id)
-        while len(quiz_data) < 3:
+        user_dict = self.get_user_dict(user_id, from_lang, to_lang)
+        while len(quiz_data) < questions_number:
             index = random.randint(0, len(user_dict) - 1)
             if not user_dict[index][1] in quiz_words:
                 quiz_words.append(user_dict[index][1])

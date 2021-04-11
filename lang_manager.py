@@ -126,7 +126,7 @@ class LangManager:
         user_profile_page += f'*{self.get_page_text("PROFILE", "MAILINGS", lang_code)}*: ' \
                              f'{self._parse_mailings_level(user_info[8], lang_code)}\n'
         user_profile_page += f'*{self.get_page_text("PROFILE", "DICT_CAPACITY", lang_code)}*: ' \
-                             f'{self.db.get_user_dict_capacity(user_id)}\n'
+                             f'{self.db.get_user_total_dict_capacity(user_id)}\n'
         user_profile_page += f'*{self.get_page_text("PROFILE", "REFERRALS", lang_code)}*: ' \
                              f'{self.db.get_user_referral_count(user_id)}'
         if self.db.get_user_referrer(user_id) is not None:
@@ -194,3 +194,9 @@ class LangManager:
     @staticmethod
     def paginated(data: list, items_per_page: int, page_number: int) -> list:
         return [data[x:x + items_per_page] for x in range(0, len(data), 10)][page_number]
+
+    def get_dictionary_list_markup(self, lang_code: str) -> list:
+        if lang_code in self.localizations and 'DICTIONARY' in self.localizations[lang_code]:
+            return self.localizations[lang_code]['DICTIONARY']['LIST']
+        else:
+            return self.localizations[DEFAULT_LANG]['DICTIONARY']['LIST']

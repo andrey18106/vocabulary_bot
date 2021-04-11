@@ -2,6 +2,7 @@
 
 # ===== Default imports =====
 
+import asyncio
 import logging
 
 # ===== External libs imports =====
@@ -46,8 +47,6 @@ class VocabularyBotCallbackHandler:
                 await query.message.delete()
                 await query.message.answer(text=self.lang.get_page_text('LANG_SETTINGS', 'SUCCESS', selected_lang),
                                            reply_markup=self.markup.get_main_menu_markup(selected_lang))
-                await query.message.answer(text=self.lang.get_page_text('SETTINGS', 'TEXT', selected_lang),
-                                           reply_markup=self.markup.get_settings_markup(selected_lang))
                 await query.answer()
             else:
                 await query.answer(self.lang.get_page_text('LANG_SETTINGS', 'ERROR', user_lang), show_alert=True)
@@ -88,8 +87,6 @@ class VocabularyBotCallbackHandler:
                 await query.message.edit_text(self.lang.get_page_text("NEWSLETTER_SETTINGS", "TEXT", user_lang))
                 await query.message.edit_reply_markup(self.markup.get_news_settings_markup(user_lang))
                 await query.answer()
-            elif page == 'leo_import':
-                await query.answer('Leo import is unavailable now. Keep waiting for it in the future', show_alert=True)
 
         @self.dp.callback_query_handler(lambda query: query.data.startswith('news_setting_'))
         @self.analytics.callback_metric
@@ -97,16 +94,47 @@ class VocabularyBotCallbackHandler:
             """Newsletters settings"""
             user_lang = self.lang.parse_user_lang(query['from']['id'])
             selected_option = query['data'][13:]
-            if selected_option == 'all':
-                self.db.set_user_mailings(query['from']['id'], 2)
-            elif selected_option == 'important':
-                self.db.set_user_mailings(query['from']['id'], 1)
-            elif selected_option == 'disable':
-                self.db.set_user_mailings(query['from']['id'], 0)
+            user_mailings = self.db.get_user_mailings(query['from']['id'])
+            mailings_settings = ['disable', 'important', 'all']
+            if mailings_settings[user_mailings] != selected_option:
+                if selected_option == 'all' and user_mailings != 2:
+                    self.db.set_user_mailings(query['from']['id'], 2)
+                elif selected_option == 'important' and user_mailings != 1:
+                    self.db.set_user_mailings(query['from']['id'], 1)
+                elif selected_option == 'disable' and user_mailings != 0:
+                    self.db.set_user_mailings(query['from']['id'], 0)
+                await query.message.delete()
+                await query.message.answer(self.lang.get_page_text("NEWSLETTER_SETTINGS", "SUCCESS", user_lang))
+            else:
+                await query.answer(self.lang.get_page_text('NEWSLETTER_SETTINGS', 'ALREADY_SET', user_lang),
+                                   show_alert=True)
+
+        async def _send_dictionary_page(message: types.Message, user_id: int, user_lang: str, from_lang: str,
+                                        to_lang: str, state: FSMContext):
+            current_state = {
+                'current_page': 0,
+                'from_lang': from_lang,
+                'to_lang': to_lang
+            }
+            paginator = getattr(pagination, 'dictionary'.capitalize() + 'Paginator')(self.lang, self.db, self.markup,
+                                                                                     user_id,
+                                                                                     current_page=current_state)
+            await message.answer(text=self.lang.get_page_text('DICTIONARY', 'TEXT', user_lang),
+                                 reply_markup=self.markup.get_dictionary_markup(user_lang))
+            await message.answer(text=paginator.first_page(user_lang), reply_markup=paginator.get_reply_markup())
+            async with state.proxy() as data:
+                data['curr_pagination_page'] = current_state
+            await DictionaryState.dictionary.set()
+
+        @self.dp.callback_query_handler(lambda query: query.data.startswith('dictionary_'), state="*")
+        @self.analytics.callback_fsm_metric
+        async def dictionary_list_callback_handler(query: types.CallbackQuery, state: FSMContext):
+            user_lang = self.lang.parse_user_lang(query['from']['id'])
+            selected_dict_pairs = query.data[11:].split('_')
+            from_lang = selected_dict_pairs[0]
+            to_lang = selected_dict_pairs[1]
             await query.message.delete()
-            await query.message.answer(self.lang.get_page_text("NEWSLETTER_SETTINGS", "SUCCESS", user_lang))
-            await query.message.answer(text=self.lang.get_page_text('SETTINGS', 'TEXT', user_lang),
-                                       reply_markup=self.markup.get_settings_markup(user_lang))
+            await _send_dictionary_page(query.message, query['from']['id'], user_lang, from_lang, to_lang, state)
 
         # PAGINATION
         @self.dp.callback_query_handler(lambda query: query.data.startswith('first_'), state="*")
@@ -225,7 +253,10 @@ class VocabularyBotCallbackHandler:
             await query.answer()
             await query.message.delete()
             user_lang = self.lang.parse_user_lang(query['from']['id'])
-            quiz_data = self.db.get_user_quiz_data(query['from']['id'], 'en', 'ru')
+            async with state.proxy() as data:
+                from_lang = data['curr_pagination_page']['from_lang']
+                to_lang = data['curr_pagination_page']['to_lang']
+            quiz_data = self.db.get_user_quiz_data(query['from']['id'], from_lang, to_lang, 10)
             await DictionaryQuizState.user_answers.set()
             async with state.proxy() as data:
                 data['quiz_results'] = []
@@ -282,7 +313,6 @@ class VocabularyBotCallbackHandler:
         @self.dp.callback_query_handler(state=DictionaryQuizState.finish)
         @self.analytics.callback_fsm_metric
         async def quiz_finish_callback_handler(query: types.CallbackQuery, state: FSMContext):
-            """TODO: Add collecting quiz stats and motivational messages after passing quizzes"""
             user_lang = self.lang.parse_user_lang(query['from']['id'])
             if query.message.poll.total_voter_count == 1:
                 await query.answer()
@@ -318,9 +348,14 @@ class VocabularyBotCallbackHandler:
                 async with state.proxy() as data:
                     new_word_string = data['search_query']
                     new_word_translation = data['translation']
-                    self.db.add_user_word(new_word_string, new_word_translation, query['from']['id'], 'en', 'ru')
+                    from_lang = data['curr_pagination_page']['from_lang']
+                    to_lang = data['curr_pagination_page']['to_lang']
+                    self.db.add_user_word(new_word_string, new_word_translation, query['from']['id'], from_lang,
+                                          to_lang)
                     await query.message.edit_text(self.lang.get_page_text('ADD_WORD', 'SUCCESSFUL_ADDED', user_lang))
                 await state.finish()
+                await asyncio.sleep(1)
+                await _send_dictionary_page(query.message, query['from']['id'], user_lang, from_lang, to_lang, state)
             elif action == 'find_another':
                 await query.message.delete()
                 await query.message.answer(text=self.lang.get_page_text('FIND_WORD', 'WELCOME_TEXT', user_lang),

@@ -24,15 +24,18 @@ class StatisticsPaginator(Paginator):
         self.db = db_manager
         self.markup = markup_manager
         self.user_last_word_added = self.db.get_user_dict_last_word_date(self.user_id)
-        self.data = self.db.get_user_dictionary_stats(self.user_id)
-        self.total_pages = self.data['total_pages']
-        self.current_state = current_page
-        self.current_year_index = self.current_state['current_year_index']
-        self.current_month_index = self.current_state['current_month_index']
-        self.current_month_page = self.current_state['current_month_page']
-        self.current_total_page = self.current_state['current_total_page']
-        self.current_year = self.__parse_year()
-        self.current_month = self.__parse_month()
+        self.from_lang = current_page['from_lang']
+        self.to_lang = current_page['to_lang']
+        self.data = self.db.get_user_dictionary_stats(self.user_id, self.from_lang, self.to_lang)
+        if self.data is not None:
+            self.total_pages = self.data['total_pages']
+            self.current_state = current_page
+            self.current_year_index = self.current_state['current_year_index']
+            self.current_month_index = self.current_state['current_month_index']
+            self.current_month_page = self.current_state['current_month_page']
+            self.current_total_page = self.current_state['current_total_page']
+            self.current_year = self.__parse_year()
+            self.current_month = self.__parse_month()
 
     def first(self):
         self.current_year_index = 0
@@ -127,7 +130,9 @@ class StatisticsPaginator(Paginator):
             'current_year_index': self.current_year_index,
             'current_month_index': self.current_month_index,
             'current_month_page': self.current_month_page,
-            'current_total_page': self.current_total_page
+            'current_total_page': self.current_total_page,
+            'from_lang': self.from_lang,
+            'to_lang': self.to_lang
         }
         return self.current_state
 

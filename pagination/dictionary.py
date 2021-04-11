@@ -17,16 +17,19 @@ class DictionaryPaginator(Paginator):
     action = 'dictionary'
 
     def __init__(self, lang_manager: LangManager, db_manager: DbManager, markup_manager: MarkupManager, user_id: int,
-                 current_page: int = 0):
+                 current_page: dict = None):
         super().__init__()
         self.user_id = user_id
         self.lang = lang_manager
         self.db = db_manager
         self.markup = markup_manager
-        self.data = self.db.get_user_dict(self.user_id)
+        self.from_lang = current_page['from_lang']
+        self.to_lang = current_page['to_lang']
+        self.data = self.db.get_user_dict(self.user_id, self.from_lang, self.to_lang)
         self.paginated_data = [self.data[x:x + self.lang.PAGINATION_PAGE_SIZE] for x in
                                range(0, len(self.data), self.lang.PAGINATION_PAGE_SIZE)]
-        self.current_page = current_page
+        self.current_state = current_page
+        self.current_page = current_page['current_page']
 
     def first(self) -> list:
         self.current_page = 0
@@ -74,4 +77,9 @@ class DictionaryPaginator(Paginator):
         return len(self.paginated_data)
 
     def get_state_data(self):
-        return self.current_page
+        self.current_state = {
+            'current_page': self.current_page,
+            'from_lang': self.from_lang,
+            'to_lang': self.to_lang
+        }
+        return self.current_state

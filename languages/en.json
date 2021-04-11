@@ -40,6 +40,19 @@
   },
   "DICTIONARY": {
     "TEXT": "Your dictionary",
+    "LIST_TEXT": "Select dictionary",
+    "LIST": [
+      {
+        "TEXT": "English - Russian",
+        "THUMBS" : "\uD83C\uDDFA\uD83C\uDDF8 - \uD83C\uDDF7\uD83C\uDDFA",
+        "CALLBACK_DATA": "dictionary_en_ru"
+      },
+      {
+        "TEXT": "English - Ukrainian",
+        "THUMBS": "\uD83C\uDDFA\uD83C\uDDF8 - \uD83C\uDDFA\uD83C\uDDE6",
+        "CALLBACK_DATA": "dictionary_en_ua"
+      }
+    ],
     "EMPTY_DICTIONARY": "Your dictionary is empty. Start collecting words now.",
     "WORD_INFO": "Word info from your dictionary",
     "NOT_FOUND": "Unfortunately, word not found in your dictionary",
@@ -57,7 +70,8 @@
     "YEAR": "*{}* year:\n\n",
     "DATE": "\t\t\t\t*{}* - {} word(s)\n",
     "MONTH_TOTAL": "\n\tTotal for *{}*: {} word(s)\n\n",
-    "YEAR_TOTAL": "Total for *{}*: {} word(s)"
+    "YEAR_TOTAL": "Total for *{}*: {} word(s)",
+    "NOT_ENOUGH_DATA": "Not enough data for statistics"
   },
   "PROFILE": {
     "TEXT": "👨 Your profile",
@@ -80,10 +94,6 @@
       {
         "TEXT": "Newsletters",
         "CALLBACK_DATA": "settings_newsletters"
-      },
-      {
-        "TEXT": "LinguaLeo import",
-        "CALLBACK_DATA": "settings_leo_import"
       }
     ]
   },
@@ -109,6 +119,7 @@
   "NEWSLETTER_SETTINGS": {
     "TEXT": "Select options for newsletter settings",
     "SUCCESS": "Newsletter settings successfully updated",
+    "ALREADY_SET": "This option already enabled",
     "BUTTONS": [
       {
         "TEXT": "✔ Enable all",
@@ -206,7 +217,8 @@
     ]
   },
   "ACHIEVEMENTS": {
-    "TEXT": "Your vocabulary achievements"
+    "TEXT": "Your vocabulary achievements",
+    "IN_DEVELOPING": "Achievements in developing"
   },
   "THROTTLING": {
     "LANG_SETTINGS": "The interface language can be changed only once per minute.",
@@ -224,6 +236,7 @@
     "EXPLANATION": "The correct answer is:",
     "NON_SELECTED": "Select one of the options!",
     "RESULTS": "Quiz results",
+    "NOT_ENOUGH_DATA": "Not enough words for quiz",
     "IN_DEVELOPING": "Quiz is in developing..."
   },
   "ADD_WORD": {
@@ -246,6 +259,7 @@
     "CONFIRMATION": "Confirm deleting this word",
     "CANCELLED": "Word deleting canceled",
     "NOT_FOUND": "Word not found",
+    "EMPTY_DICT": "Your dictionary is empty",
     "IN_DEVELOPING": "Delete word command is in developing..."
   },
   "EDIT_WORD": {
@@ -259,6 +273,7 @@
     "SUCCESSFUL": "Word successfully edited",
     "CONFIRMATION": "Confirm word editing",
     "CANCELED": "Word editing canceled",
+    "EMPTY_DICT": "Your dictionary is empty",
     "IN_DEVELOPING": "Edit word command is in developing..."
   },
   "FIND_WORD": {
@@ -269,9 +284,6 @@
     "NOT_FOUND_ADD_WORD": "Add to my dictionary",
     "FIND_ANOTHER": "Find another word",
     "IN_DEVELOPING": "Find word command is in developing..."
-  },
-  "STATISTICS": {
-    "IN_DEVELOPING": "Statistics is in developing..."
   },
   "PAGINATION": {
     "FIRST_REACHED": "First page already reached",

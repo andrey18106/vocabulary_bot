@@ -179,3 +179,12 @@ class MarkupManager:
         markup.add(types.InlineKeyboardButton(text=self.lang.get_page_text('EDIT_WORD', 'TRANSLATION', lang_code),
                                               callback_data='edit_word_translation'))
         return markup
+
+    def get_dictionary_list_markup(self, lang_code: str) -> types.InlineKeyboardMarkup:
+        markup = types.InlineKeyboardMarkup()
+        markup_buttons = self.lang.get_dictionary_list_markup(lang_code)
+        if markup_buttons is not None:
+            for markup_button in markup_buttons:
+                markup.add(types.InlineKeyboardButton(text=f"{markup_button['THUMBS']} {markup_button['TEXT']}",
+                                                      callback_data=markup_button['CALLBACK_DATA']))
+        return markup
