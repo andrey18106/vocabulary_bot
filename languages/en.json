@@ -1,19 +1,107 @@
 {
-  "WELCOME_MESSAGE": "Hi 👋, I'm Vocabulary Bot.",
+  "WELCOME_MESSAGE": "Hi 👋, I'm Vocabulary Bot.\n\nWith my help, You can collect your unknown words and repeat their knowledge regularly.",
+  "HELP_MESSAGE": "Vocabulary Bot Help\n\n/start - to start the bot\n/help - get help message\n/settings - configure the bot settings\n/cancel - cancel command executing",
   "ECHO_MESSAGE": "Sorry, I don't know what to say \uD83D\uDE44",
+  "HELP": {
+    "TEXT": "Select your question",
+    "BACK": "Back to questions",
+    "BACK_CALLBACK": "back_to_help",
+    "BUTTONS": [
+      {
+        "TEXT": "What is Vocabulary Bot",
+        "CALLBACK_DATA": "help_question_whatis"
+      },
+      {
+        "TEXT": "How to manage my vocabulary",
+        "CALLBACK_DATA": "help_question_howto"
+      },
+      {
+        "TEXT": "How to support us",
+        "CALLBACK_DATA": "help_question_common"
+      }
+    ],
+    "help_question_whatis": "Vocabulary Bot - is your own different languages vocabulary with the achievements and rating system.",
+    "help_question_howto": "To manage your Vocabulary you can use appropriate keyboard commands accompanied by help messages.",
+    "help_question_common": "To support us you can donate to one of our wallets any amount."
+  },
   "MAIN_MENU": {
+    "BUTTONS": [
+      "📃 Dictionary",
+      "🏆 Achievements",
+      "🥇 Rating",
+      "🙎‍♂️Profile",
+      "⚙ Settings",
+      "❓ Help"
+    ]
+  },
+  "BACK_MAIN_MENU": {
+    "TEXT": "Main menu",
+    "BUTTON": "🔙 Back"
+  },
+  "DICTIONARY": {
+    "TEXT": "Your dictionary",
+    "LIST_TEXT": "Select dictionary",
+    "LIST": [
+      {
+        "TEXT": "English - Russian",
+        "THUMBS" : "\uD83C\uDDFA\uD83C\uDDF8 - \uD83C\uDDF7\uD83C\uDDFA",
+        "CALLBACK_DATA": "dictionary_en_ru"
+      },
+      {
+        "TEXT": "English - Ukrainian",
+        "THUMBS": "\uD83C\uDDFA\uD83C\uDDF8 - \uD83C\uDDFA\uD83C\uDDE6",
+        "CALLBACK_DATA": "dictionary_en_ua"
+      }
+    ],
+    "EMPTY_DICTIONARY": "Your dictionary is empty. Start collecting words now.",
+    "WORD_INFO": "Word info from your dictionary",
+    "NOT_FOUND": "Unfortunately, word not found in your dictionary",
     "BUTTONS": [
       "➕ Add word",
       "➖ Delete word",
       "✏ Edit word",
-      "📃 Dictionary",
-      "⚙ Settings",
-      "❓ Help"
+      "🔎 Find word",
+      "📝 Quiz",
+      "📉 Statistics",
+      "📃 List words"
+    ]
+  },
+  "DICT_STATS": {
+    "HEADING": "Statistics of adding words (page {} of {}):\n\n",
+    "YEAR": "*{}* year:\n\n",
+    "DATE": "\t\t\t\t*{}* - {} word(s)\n",
+    "MONTH_TOTAL": "\n\tTotal for *{}*: {} word(s)\n\n",
+    "YEAR_TOTAL": "Total for *{}*: {} word(s)",
+    "NOT_ENOUGH_DATA": "Not enough data for statistics"
+  },
+  "PROFILE": {
+    "TEXT": "👨 Your profile",
+    "DATE_FROM": "📅 User from",
+    "LANG_SETTING": "🌐 Interface language",
+    "MAILINGS": "📨 Bot mailings",
+    "DICT_CAPACITY": "📖 Words in dictionary",
+    "REFERRALS": "🙋‍♂️Referrals",
+    "REFERRER": "✍ Referrer",
+    "REFERRAL_BUTTON_TEXT": "🔗 Get my referral link",
+    "REFERRAL_LINK_TEXT": "Your referral link to invite new users and get some bonuses"
+  },
+  "SETTINGS": {
+    "TEXT": "Select the settings item",
+    "BUTTONS": [
+      {
+        "TEXT": "Interface",
+        "CALLBACK_DATA": "settings_interface"
+      },
+      {
+        "TEXT": "Newsletters",
+        "CALLBACK_DATA": "settings_newsletters"
+      }
     ]
   },
   "LANG_SETTINGS": {
     "TEXT": "Select interface language",
     "SUCCESS": "Interface language successfully changed",
+    "ERROR": "Interface already set to English",
     "BUTTONS": [
       {
         "TEXT": "English",
@@ -28,5 +116,184 @@
         "CALLBACK_DATA": "lang_setting_ru"
       }
     ]
+  },
+  "NEWSLETTER_SETTINGS": {
+    "TEXT": "Select options for newsletter settings",
+    "SUCCESS": "Newsletter settings successfully updated",
+    "ALREADY_SET": "This option already enabled",
+    "BUTTONS": [
+      {
+        "TEXT": "✔ Enable all",
+        "CALLBACK_DATA": "news_setting_all"
+      },
+      {
+        "TEXT": "⚠ Only important",
+        "CALLBACK_DATA": "news_setting_important"
+      },
+      {
+        "TEXT": "❌ Disable all",
+        "CALLBACK_DATA": "news_setting_disable"
+      }
+    ],
+    "LEVELS": [
+      "Disabled",
+      "Only important",
+      "All enabled"
+    ]
+  },
+  "ADMIN": {
+    "ADMIN_PANEL_TEXT": "Admin panel",
+    "DEFAULT_PANEL_TEXT": "Default panel",
+    "BUTTONS": [
+      "🙎 Users",
+      "📧 Mailings",
+      "📉 Analytics",
+      "🗄 Database"
+    ],
+    "USERS": "Bot users",
+    "STATISTICS": "Statistics of usage",
+    "MAILINGS": "Mailing to bot users",
+    "DATABASE": "Database manager",
+    "PERMISSIONS": [
+      {
+        "LEVEL": 1,
+        "NAME": "Administrator",
+        "BUTTONS": [
+          "🙎 Users",
+          "📧 Mailings",
+          "📉 Analytics",
+          "🗄 Database"
+        ]
+      },
+      {
+        "LEVEL": 2,
+        "NAME": "Moderator",
+        "BUTTONS": [
+          "🙎 Users",
+          "📧 Mailings"
+        ]
+      },
+      {
+        "LEVEL": 3,
+        "NAME": "Teacher",
+        "BUTTONS": [
+          "🙎 Users"
+        ]
+      }
+    ]
+  },
+  "MAILINGS": {
+    "NEW": "Send me one text message, that would be used for broadcast to bot users",
+    "CONFIRMATION": "Confirm the message for broadcasting",
+    "SUCCESSFUL": "Broadcast successfully created",
+    "CANCELED": "Broadcast canceled",
+    "BUTTONS": [
+      {
+        "TEXT": "New mailing",
+        "CALLBACK_DATA": "mailings_new"
+      },
+      {
+        "TEXT": "Scheduled mailings",
+        "CALLBACK_DATA": "mailings_schedule_list"
+      }
+    ]
+  },
+  "RATING": {
+    "TEXT": "Vocabulary Bot Rating",
+    "AMOUNT": "words amount",
+    "NOT_AVAILABLE": "Vocabulary Bot Rating currently unavailable. Keep waiting for it, while the number of users increases.",
+    "BUTTONS": [
+      {
+        "TEXT": "By words amount",
+        "CALLBACK_DATA": "rating_by_words_amount"
+      },
+      {
+        "TEXT": "By achievements",
+        "CALLBACK_DATA": "rating_by_achievements"
+      },
+      {
+        "TEXT": "By passed quizzes",
+        "CALLBACK_DATA": "rating_by_passed_quizzes"
+      }
+    ]
+  },
+  "ACHIEVEMENTS": {
+    "TEXT": "Your vocabulary achievements",
+    "IN_DEVELOPING": "Achievements in developing"
+  },
+  "THROTTLING": {
+    "LANG_SETTINGS": "The interface language can be changed only once per minute.",
+    "CANCELED": "Canceled",
+    "TOO_MANY_REQUESTS": "Too many requests"
+  },
+  "QUIZ": {
+    "TEXT": "Quiz based on your dictionary. From it randomly choosing 10 words with random options, where only 1 is correct.",
+    "BUTTON_START": "Start the quiz",
+    "BUTTON_NEXT": "Next ➡",
+    "BUTTON_FINISH": "🏁 Finish",
+    "FINISH": "Quiz successfully finished!",
+    "FINISH_TOTAL": "Total results",
+    "QUESTION": "Select the correct translation of the word: {}",
+    "EXPLANATION": "The correct answer is:",
+    "NON_SELECTED": "Select one of the options!",
+    "RESULTS": "Quiz results",
+    "NOT_ENOUGH_DATA": "Not enough words for quiz",
+    "RESULT_USER_ANSWER": "your answer",
+    "RESULT_CORRECT": "correct answer",
+    "IN_DEVELOPING": "Quiz is in developing..."
+  },
+  "ADD_WORD": {
+    "WELCOME_TEXT": "Send me a new word in the next message",
+    "TRANSLATE_TEXT": "Ok. Now send me a translation of a new word in the next message",
+    "SUCCESSFUL_ADDED": "New word successfully added to your dictionary",
+    "CONFIRMATION": "Confirm the word adding",
+    "BUTTONS": [
+      "✔ Yes",
+      "❌ No"
+    ],
+    "NOT_VALID": "The word should contain only English letters. Try again",
+    "ALREADY_EXISTS": "The word already exists in your dictionary",
+    "CANCELLED": "Adding a new word canceled",
+    "IN_DEVELOPING": "Add word command is in developing..."
+  },
+  "DELETE_WORD": {
+    "WELCOME_TEXT": "Send me a word you want to delete",
+    "SUCCESSFUL_DELETED": "Word successfully deleted",
+    "CONFIRMATION": "Confirm deleting this word",
+    "CANCELLED": "Word deleting canceled",
+    "NOT_FOUND": "Word not found",
+    "EMPTY_DICT": "Your dictionary is empty",
+    "IN_DEVELOPING": "Delete word command is in developing..."
+  },
+  "EDIT_WORD": {
+    "WELCOME_TEXT": "Send me a word from your dictionary you want to edit",
+    "WORD_FOUND": "Word to edit successfully found",
+    "NOT_FOUND": "Word not found in your dictionary. Try again or /cancel",
+    "STRING": "Edit word string",
+    "TRANSLATION": "Edit word translation",
+    "NEW_STRING": "Send me an edited word string",
+    "NEW_TRANSLATION": "Send me a new word translation",
+    "SUCCESSFUL": "Word successfully edited",
+    "CONFIRMATION": "Confirm word editing",
+    "CANCELED": "Word editing canceled",
+    "EMPTY_DICT": "Your dictionary is empty",
+    "IN_DEVELOPING": "Edit word command is in developing..."
+  },
+  "FIND_WORD": {
+    "WELCOME_TEXT": "Send me a word you want to find",
+    "WORD_FOUND": "Searching result",
+    "NOT_FOUND": "Word not found in your dictionary",
+    "NOT_FOUND_TRANSLATION": "But we found the translation of the word",
+    "NOT_FOUND_ADD_WORD": "Add to my dictionary",
+    "FIND_ANOTHER": "Find another word",
+    "IN_DEVELOPING": "Find word command is in developing..."
+  },
+  "PAGINATION": {
+    "FIRST_REACHED": "First page already reached",
+    "LAST_REACHED": "Last page already reached"
+  },
+  "QUOTE": {
+    "TEXT": "Random quote of the day",
+    "ERROR": "Sorry, some error occurred, quote of the day is not available now"
   }
 }
