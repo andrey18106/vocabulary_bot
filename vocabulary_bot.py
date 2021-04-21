@@ -80,11 +80,9 @@ class VocabularyBot:
                                  message['from']['last_name'])
                 self.db.set_user_lang(message['from']['id'], config.DEFAULT_LANG)
                 user_lang = config.DEFAULT_LANG
-
                 # HANDLE REFERRAL
                 if message.get_args() is not None and re.match(self.REFERRAL_REGEX, message.get_args()):
                     referrer_id = int(message.get_args()[9:])
-                    # IF REFERRER EXISTS AND REFERRAL USER IS NOT EXISTS IN THE DATABASE
                     if self.db.is_user_exists(referrer_id) and message['from']['id'] != referrer_id:
                         self.db.update_referral_count(referrer_id)
                         self.db.set_user_referrer(message['from']['id'], referrer_id)
@@ -235,24 +233,14 @@ class VocabularyBot:
             await message.answer(text=self.lang.get_page_text('HELP', 'TEXT', user_lang),
                                  reply_markup=self.markup.get_help_markup(user_lang))
 
-        # IF MAIN_MENU -> ADD WORD COMMAND
+        # IF MAIN_MENU -> DICTIONARY -> ADD WORD COMMAND
         @self.dp.message_handler(
             lambda message: message.text == self.lang.get_markup_localization("DICTIONARY", self.db.get_user_lang(
                 message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[0],
             state=DictionaryState.dictionary)
         @self.analytics.default_metric
         async def new_word_command_handler(message: types.Message):
-            """Handler for add new word command (➕ Add word)
-            (in a future with selection the thematic vocabulary)
-            Default Dictionary Command Logics:
-            -> Send a welcome message according to the action to enter the new word
-            -> Set the FSM state to "waiting for a new word"
-            -> Handle the message with a new word
-            -> Validate a new word (spell checking, translation, regexp for English words or phrases)
-            -> Save a new word in the database if it correct (after previous step validation)
-            -> Check for achievements receiving after this action executed
-            -> Send motivational message
-            """
+            """Handler for add new word command (➕ Add word)"""
             await DictionaryAddNewWordState.word.set()
             user_lang = self.lang.parse_user_lang(message['from']['id'])
             await message.answer(text=self.lang.get_page_text('ADD_WORD', 'WELCOME_TEXT', user_lang),
@@ -305,7 +293,7 @@ class VocabularyBot:
             await asyncio.sleep(1)
             await _send_dictionary_page(message, user_lang, from_lang, to_lang, state)
 
-        # IF MAIN_MENU -> DELETE WORD COMMAND
+        # IF MAIN_MENU -> DICTIONARY -> DELETE WORD COMMAND
         @self.dp.message_handler(
             lambda message: message.text == self.lang.get_markup_localization("DICTIONARY", self.db.get_user_lang(
                 message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[1],
@@ -362,7 +350,7 @@ class VocabularyBot:
             await asyncio.sleep(1)
             await _send_dictionary_page(message, user_lang, from_lang, to_lang, state)
 
-        # IF MAIN_MENU -> EDIT WORD COMMAND
+        # IF MAIN_MENU -> DICTIONARY -> EDIT WORD COMMAND
         @self.dp.message_handler(
             lambda message: message.text == self.lang.get_markup_localization("DICTIONARY", self.db.get_user_lang(
                 message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[2],
@@ -445,7 +433,7 @@ class VocabularyBot:
                 await state.finish()
                 await _send_dictionary_page(message, user_lang, from_lang, to_lang, state)
 
-        # IF MAIN_MENU -> FIND WORD COMMAND
+        # IF MAIN_MENU -> DICTIONARY -> FIND WORD COMMAND
         @self.dp.message_handler(
             lambda message: message.text == self.lang.get_markup_localization("DICTIONARY", self.db.get_user_lang(
                 message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[3],
@@ -485,7 +473,7 @@ class VocabularyBot:
                 msg += f"{data['search_query']} - {word_translation}"
                 await message.answer(text=msg, reply_markup=self.markup.get_find_word_found_markup(user_lang))
 
-        # IF MAIN_MENU -> QUIZ COMMAND
+        # IF MAIN_MENU -> DICTIONARY -> QUIZ COMMAND
         @self.dp.message_handler(
             lambda message: message.text == self.lang.get_markup_localization("DICTIONARY", self.db.get_user_lang(
                 message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[4],
@@ -503,7 +491,7 @@ class VocabularyBot:
             else:
                 await message.answer(self.lang.get_page_text('QUIZ', 'NOT_ENOUGH_DATA', user_lang))
 
-        # IF MAIN_MENU -> STATISTICS COMMAND
+        # IF MAIN_MENU -> DICTIONARY -> STATISTICS COMMAND
         @self.dp.message_handler(
             lambda message: message.text == self.lang.get_markup_localization("DICTIONARY", self.db.get_user_lang(
                 message['from']['id'] if self.db.is_user_exists(message['from']['id']) else config.DEFAULT_LANG))[5],
@@ -533,6 +521,21 @@ class VocabularyBot:
                                      parse_mode=paginator.get_parse_mode())
             else:
                 await message.answer(self.lang.get_page_text('DICT_STATS', 'NOT_ENOUGH_DATA', user_lang))
+
+        # IF MAIN_MENU -> DICTIONARY -> LIST COMMAND
+        @self.dp.message_handler(
+            lambda message: message.text == self.lang.get_markup_localization("DICTIONARY", self.db.get_user_lang(
+                                message['from']['id'] if self.db.is_user_exists(
+                                    message['from']['id']) else config.DEFAULT_LANG))[6],
+            state=DictionaryState.dictionary)
+        @self.analytics.fsm_metric
+        async def dictionary_list_words_command_handler(message: types.Message, state: FSMContext):
+            """Handler for edit word command (📃 List words)"""
+            user_lang = self.lang.parse_user_lang(message['from']['id'])
+            async with state.proxy() as data:
+                from_lang = data['curr_pagination_page']['from_lang']
+                to_lang = data['curr_pagination_page']['to_lang']
+                await _send_dictionary_page(message, user_lang, from_lang, to_lang, state)
 
         @self.dp.message_handler(lambda message: message.text.startswith('/word_'), state="*")
         @self.analytics.default_metric

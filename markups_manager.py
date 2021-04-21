@@ -64,9 +64,9 @@ class MarkupManager:
                     markup.add(types.reply_keyboard.KeyboardButton(text=markup_texts[i]),
                                types.reply_keyboard.KeyboardButton(text=markup_texts[i + 1]))
                 else:
-                    markup.add(types.reply_keyboard.KeyboardButton(text=markup_texts[i]))
-            markup.add(types.reply_keyboard.KeyboardButton(
-                text=self.lang.get_page_text('BACK_MAIN_MENU', 'BUTTON', lang_code)))
+                    markup.add(types.reply_keyboard.KeyboardButton(text=markup_texts[i]),
+                               types.reply_keyboard.KeyboardButton(
+                                   text=self.lang.get_page_text('BACK_MAIN_MENU', 'BUTTON', lang_code)))
         return markup
 
     def get_admin_markup(self, permissions: tuple, lang_code: str) -> types.ReplyKeyboardMarkup:

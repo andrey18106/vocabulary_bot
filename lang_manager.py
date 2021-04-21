@@ -171,10 +171,12 @@ class LangManager:
         correct_answers = 0
         for i in range(0, len(quiz_results)):
             result += f'{i + 1}. *{quiz_results[i]["word"]}* ' \
-                      f'(Your answer: {quiz_results[i]["options"][quiz_results[i]["selected_option"]]["text"]}'
+                      f'({self.get_page_text("QUIZ", "RESULT_USER_ANSWER", lang_code)}: ' \
+                      f'{quiz_results[i]["options"][quiz_results[i]["selected_option"]]["text"]}'
             if quiz_results[i]['selected_option'] != quiz_results[i]['correct_option']:
-                result += f', Correct answer: {quiz_results[i]["options"][quiz_results[i]["correct_option"]]["text"]}'
-                result += f' `[{quiz_results[i]["selected_option"] == quiz_results[i]["correct_option"]}]`)\n'
+                result += f' `[{quiz_results[i]["selected_option"] == quiz_results[i]["correct_option"]}], `'
+                result += f'{self.get_page_text("QUIZ", "RESULT_CORRECT", lang_code)}: ' \
+                          f'{quiz_results[i]["options"][quiz_results[i]["correct_option"]]["text"]})\n'
             else:
                 result += f' `[{quiz_results[i]["selected_option"] == quiz_results[i]["correct_option"]}]`)\n'
                 correct_answers += 1

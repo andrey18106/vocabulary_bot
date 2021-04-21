@@ -62,7 +62,8 @@
       "✏ Edit word",
       "🔎 Find word",
       "📝 Quiz",
-      "📉 Statistics"
+      "📉 Statistics",
+      "📃 List words"
     ]
   },
   "DICT_STATS": {
@@ -229,7 +230,7 @@
     "TEXT": "Quiz based on your dictionary. From it randomly choosing 10 words with random options, where only 1 is correct.",
     "BUTTON_START": "Start the quiz",
     "BUTTON_NEXT": "Next ➡",
-    "BUTTON_FINISH": "🏁 Finish ",
+    "BUTTON_FINISH": "🏁 Finish",
     "FINISH": "Quiz successfully finished!",
     "FINISH_TOTAL": "Total results",
     "QUESTION": "Select the correct translation of the word: {}",
@@ -237,6 +238,8 @@
     "NON_SELECTED": "Select one of the options!",
     "RESULTS": "Quiz results",
     "NOT_ENOUGH_DATA": "Not enough words for quiz",
+    "RESULT_USER_ANSWER": "your answer",
+    "RESULT_CORRECT": "correct answer",
     "IN_DEVELOPING": "Quiz is in developing..."
   },
   "ADD_WORD": {
