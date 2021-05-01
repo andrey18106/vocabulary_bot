@@ -6,5 +6,3 @@ environment
 database.db
 database.sql
 database_dev.db
-.scannerwork
-sonar-project.properties
